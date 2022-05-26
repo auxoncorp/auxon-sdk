@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::Deref};
 
 use minicbor::{data::Tag, decode, encode, Decode, Decoder, Encode, Encoder};
-use uuid::Uuid;
+pub use uuid::Uuid;
 
 use crate::protocol::{TAG_LOGICAL_TIME, TAG_NS, TAG_TIMELINE_ID};
 

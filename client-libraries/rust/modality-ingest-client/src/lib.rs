@@ -1,5 +1,5 @@
-mod protocol;
-mod client;
-mod types;
+pub mod protocol;
+pub mod client;
+pub mod types;
 
 pub use client::*;
