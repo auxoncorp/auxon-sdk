@@ -274,3 +274,39 @@ impl Encode for AttrVal {
         Ok(())
     }
 }
+
+impl From<String> for AttrVal {
+    fn from(s: String) -> AttrVal {
+        AttrVal::String(s)
+    }
+}
+
+impl From<&str> for AttrVal {
+    fn from(s: &str) -> AttrVal {
+        AttrVal::String(s.to_string())
+    }
+}
+
+impl From<i64> for AttrVal {
+    fn from(i: i64) -> AttrVal {
+        AttrVal::Integer(i)
+    }
+}
+
+impl From<i128> for AttrVal {
+    fn from(i: i128) -> AttrVal {
+        BigInt::new_attr_val(i)
+    }
+}
+
+impl From<f64> for AttrVal {
+    fn from(f: f64) -> AttrVal {
+        AttrVal::Float(f)
+    }
+}
+
+impl From<bool> for AttrVal {
+    fn from(b: bool) -> AttrVal {
+        AttrVal::Bool(b)
+    }
+}
