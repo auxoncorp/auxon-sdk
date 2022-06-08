@@ -56,10 +56,7 @@ impl IngestClientCommon {
         Ok(TimelineAttrKey(wire_id))
     }
 
-    async fn event_attr_key(
-        &mut self,
-        key_name: String,
-    ) -> Result<EventAttrKey, IngestError> {
+    async fn event_attr_key(&mut self, key_name: String) -> Result<EventAttrKey, IngestError> {
         if !key_name.starts_with("event.") {
             return Err(IngestError::AttrKeyNaming);
         }
@@ -76,7 +73,6 @@ impl IngestClientCommon {
 
         Ok(EventAttrKey(wire_id))
     }
-
 }
 
 impl IngestClient<UnauthenticatedState> {
@@ -167,14 +163,11 @@ impl IngestClient<ReadyState> {
     pub async fn timeline_attr_key(
         &mut self,
         key_name: String,
-    ) -> Result<TimelineAttrKey, IngestError>  {
+    ) -> Result<TimelineAttrKey, IngestError> {
         self.common.timeline_attr_key(key_name).await
     }
 
-    pub async fn event_attr_key(
-        &mut self,
-        key_name: String,
-    ) -> Result<EventAttrKey, IngestError>  {
+    pub async fn event_attr_key(&mut self, key_name: String) -> Result<EventAttrKey, IngestError> {
         self.common.event_attr_key(key_name).await
     }
 }
@@ -203,14 +196,11 @@ impl IngestClient<BoundTimelineState> {
     pub async fn timeline_attr_key(
         &mut self,
         key_name: String,
-    ) -> Result<TimelineAttrKey, IngestError>  {
+    ) -> Result<TimelineAttrKey, IngestError> {
         self.common.timeline_attr_key(key_name).await
     }
 
-    pub async fn event_attr_key(
-        &mut self,
-        key_name: String,
-    ) -> Result<EventAttrKey, IngestError>  {
+    pub async fn event_attr_key(&mut self, key_name: String) -> Result<EventAttrKey, IngestError> {
         self.common.event_attr_key(key_name).await
     }
 
