@@ -1,12 +1,13 @@
 [package]
-name = "modality-ingest-protocol"
+name = "modality-ingest-client"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 minicbor = { version = "0.13.1", features = ["std", "derive"] }
-minicbor-io = {version = "0.8", features = ["async-io"]}
+native-tls = "0.2.10"
 thiserror = "1"
+tokio = { version = "1", features = ["net", "time", "io-util"] }
+tokio-native-tls = "0.3.0"
+url = { version = "2.1" }
 uuid = { version = "0.8", features = ["v4"] }
-tokio = { version = "1", features = ["net", "time"] }
-tokio-util = { version = "0.6.9", features = ["compat"] }

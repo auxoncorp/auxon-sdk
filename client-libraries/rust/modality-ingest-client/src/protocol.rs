@@ -1,4 +1,4 @@
-use crate::types::{AttrVal, EventAttrKey, TimelineAttrKey, TimelineId};
+use crate::types::{AttrKey, AttrVal, TimelineId};
 use minicbor::{data::Tag, encode, Decode, Encode, Encoder};
 
 pub const TAG_NS: Tag = Tag::Unassigned(40000);
@@ -18,6 +18,21 @@ pub enum IngestResponse {
 
     #[n(2)]
     UnauthenticatedResponse {},
+
+    #[n(101)]
+    IngestStatusResponse {
+        #[n(0)]
+        current_timeline: Option<TimelineId>,
+
+        #[n(1)]
+        events_received: u64,
+
+        #[n(2)]
+        events_written: u64,
+
+        #[n(3)]
+        events_pending: u64,
+    },
 }
 
 #[derive(Encode, Debug)]
@@ -27,6 +42,9 @@ pub enum IngestMessage {
         #[n(0)]
         token: Vec<u8>,
     },
+
+    #[n(100)]
+    IngestStatusRequest {},
 
     #[n(102)]
     /// An advisory message, asking the server to immediately write any pending events to disk.
@@ -50,17 +68,16 @@ pub enum IngestMessage {
     #[n(113)]
     TimelineMetadata {
         #[n(0)]
-        attrs: PackedAttrKvs<TimelineAttrKey>,
+        attrs: PackedAttrKvs<AttrKey>,
     },
 
     #[n(114)]
     Event {
         #[n(0)]
-        /// Up to 16 bytes
         be_ordering: Vec<u8>,
 
         #[n(1)]
-        attrs: PackedAttrKvs<EventAttrKey>,
+        attrs: PackedAttrKvs<AttrKey>,
     },
 }
 
