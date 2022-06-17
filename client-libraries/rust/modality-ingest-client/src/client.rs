@@ -2,8 +2,6 @@ use crate::{
     protocol::{IngestMessage, IngestResponse, PackedAttrKvs},
     types::{AttrKey, AttrVal, TimelineId},
 };
-use minicbor_io::{AsyncReader, AsyncWriter};
-use std::collections::HashMap;
 use std::{net::SocketAddr, time::Duration};
 use thiserror::Error;
 use tokio::{
@@ -31,7 +29,6 @@ pub struct BoundTimelineState {
 pub struct IngestClientCommon {
     pub timeout: Duration,
     connection: IngestConnection,
-    id_packer: IdPacker,
 }
 
 impl IngestClientCommon {
@@ -40,13 +37,12 @@ impl IngestClientCommon {
         IngestClientCommon {
             timeout,
             connection,
-            id_packer: IdPacker::default(),
         }
     }
 
     /// Send a message and wait for a required response.
     #[doc(hidden)]
-    pub async fn send_recv(&mut self, msg: &IngestMessage) -> Result<IngestMessage, IngestError> {
+    pub async fn send_recv(&mut self, msg: &IngestMessage) -> Result<IngestResponse, IngestError> {
         self.connection.write_msg(msg).await?;
         timeout(self.timeout, self.connection.read_msg()).await?
     }
@@ -55,50 +51,6 @@ impl IngestClientCommon {
     #[doc(hidden)]
     pub async fn send(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
         self.connection.write_msg(msg).await
-    }
-
-    /// Send a message.
-    #[doc(hidden)]
-    pub async fn recv(&mut self) -> Result<IngestMessage, IngestError> {
-        self.connection.read_msg().await
-    }
-}
-
-#[derive(Default)]
-struct IdPacker {
-    next_id: u32,
-    attr_keys_ids: HashMap<AttrKey, u32>,
-}
-
-impl IdPacker {
-    fn attr_key_id(&mut self, key: &AttrKey, newly_added: &mut Vec<(AttrKey, u32)>) -> u32 {
-        if let Some(id) = self.attr_keys_ids.get(key) {
-            *id
-        } else {
-            let id = self.next_id;
-            self.next_id += 1;
-            self.attr_keys_ids.insert(key.clone(), id);
-            newly_added.push((key.clone(), id));
-            id
-        }
-    }
-
-    /// Return a tuple of:
-    /// - Packed attr keys (int form) /vals
-    /// - Set of any attrkeys with newly allocated ids
-    fn pack_attrs(
-        &mut self,
-        attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
-    ) -> (PackedAttrKvs, Vec<(AttrKey, u32)>) {
-        let mut new_attr_keys = vec![];
-        let packed_attrs = PackedAttrKvs(
-            attrs
-                .into_iter()
-                .map(|(k, v)| (self.attr_key_id(&k, &mut new_attr_keys), v))
-                .collect::<Vec<_>>(),
-        );
-
-        (packed_attrs, new_attr_keys)
     }
 }
 
@@ -189,21 +141,21 @@ impl IngestConnection {
         Ok(())
     }
 
-    async fn read_msg(&mut self) -> Result<IngestMessage, IngestError> {
+    async fn read_msg(&mut self) -> Result<IngestResponse, IngestError> {
         match self {
             IngestConnection::Tcp(s) => {
                 let msg_len = s.read_u32().await?; // yes, this is big-endian
                 let mut msg_buf = vec![0u8; msg_len as usize];
                 s.read_exact(msg_buf.as_mut_slice()).await?;
 
-                Ok(minicbor::decode::<IngestMessage>(&msg_buf)?)
+                Ok(minicbor::decode::<IngestResponse>(&msg_buf)?)
             }
             IngestConnection::Tls(s) => {
                 let msg_len = s.read_u32().await?; // yes, this is big-endian
                 let mut msg_buf = vec![0u8; msg_len as usize];
                 s.read_exact(msg_buf.as_mut_slice()).await?;
 
-                Ok(minicbor::decode::<IngestMessage>(&msg_buf)?)
+                Ok(minicbor::decode::<IngestResponse>(&msg_buf)?)
             }
         }
     }
@@ -234,7 +186,7 @@ impl IngestClient<UnauthenticatedState> {
             .await?;
 
         match resp {
-            IngestMessage::AuthResponse { ok, message } => {
+            IngestResponse::AuthResponse { ok, message } => {
                 if ok {
                     Ok(IngestClient {
                         state: ReadyState {},
@@ -313,14 +265,13 @@ impl IngestClient<BoundTimelineState> {
     }
 
     pub async fn status(&mut self) -> Result<IngestStatus, IngestError> {
-        self.common
-            .send(&IngestMessage::IngestStatusRequest {})
+        let resp = self
+            .common
+            .send_recv(&IngestMessage::IngestStatusRequest {})
             .await?;
 
-        let resp = timeout(self.common.timeout * 10, self.common.recv()).await??;
-
         match resp {
-            IngestMessage::IngestStatusResponse {
+            IngestResponse::IngestStatusResponse {
                 current_timeline,
                 events_received,
                 events_written,
@@ -343,16 +294,7 @@ impl IngestClientCommon {
         &mut self,
         attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
-        let (packed_attrs, new_attr_keys, packed_tags, new_tags) =
-            self.id_packer.pack_attrs(attrs.into_iter());
-
-        for (key, wire_id) in new_attr_keys {
-            self.send(&IngestMessage::DeclareAttrKey {
-                name: key.as_str().to_owned(),
-                wire_id,
-            })
-            .await?;
-        }
+        let packed_attrs = PackedAttrKvs(attrs.into_iter().collect());
 
         self.send(&IngestMessage::TimelineMetadata {
             attrs: packed_attrs,
@@ -366,16 +308,7 @@ impl IngestClientCommon {
         ordering: u128,
         attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
-        let (packed_attrs, new_attr_keys, packed_tags, new_tags) =
-            self.id_packer.pack_attrs(attrs.into_iter());
-
-        for (key, wire_id) in new_attr_keys {
-            self.send(&IngestMessage::DeclareAttrKey {
-                name: key.as_str().to_owned(),
-                wire_id,
-            })
-            .await?;
-        }
+        let packed_attrs = PackedAttrKvs(attrs.into_iter().collect());
 
         let be_ordering = ordering.to_be_bytes();
         let mut i = 0;
@@ -475,4 +408,74 @@ impl std::fmt::Debug for IngestError {
             Self::Io(e) => f.debug_tuple("Io").field(e).finish(),
         }
     }
+}
+
+pub const MODALITY_STORAGE_SERVICE_PORT_DEFAULT: u16 = 14182;
+pub const MODALITY_STORAGE_SERVICE_TLS_PORT_DEFAULT: u16 = 14184;
+pub const MODALITY_INGEST_URL_SCHEME: &str = "modality-ingest";
+pub const MODALITY_INGEST_TLS_URL_SCHEME: &str = "modality-ingest-tls";
+
+struct IngestEndpoint {
+    cert_domain: String,
+    addrs: Vec<SocketAddr>,
+    tls_mode: Option<TlsMode>,
+}
+
+impl IngestEndpoint {
+    async fn parse_and_resolve(
+        url: &Url,
+        allow_insecure_tls: bool,
+    ) -> Result<IngestEndpoint, ParseIngestEndpointError> {
+        let host = match url.host() {
+            Some(h) => h,
+            None => return Err(ParseIngestEndpointError::MissingHost),
+        };
+
+        let is_tls = match url.scheme() {
+            MODALITY_INGEST_URL_SCHEME => false,
+            MODALITY_INGEST_TLS_URL_SCHEME => true,
+            s => return Err(ParseIngestEndpointError::InvalidScheme(s.to_string())),
+        };
+        let port = match url.port() {
+            Some(p) => p,
+            _ => {
+                if is_tls {
+                    MODALITY_STORAGE_SERVICE_TLS_PORT_DEFAULT
+                } else {
+                    MODALITY_STORAGE_SERVICE_PORT_DEFAULT
+                }
+            }
+        };
+
+        let addrs = match host {
+            url::Host::Domain(domain) => tokio::net::lookup_host((domain, port)).await?.collect(),
+            url::Host::Ipv4(addr) => vec![SocketAddr::from((addr, port))],
+            url::Host::Ipv6(addr) => vec![SocketAddr::from((addr, port))],
+        };
+
+        let tls_mode = match (is_tls, allow_insecure_tls) {
+            (true, true) => Some(TlsMode::Insecure),
+            (true, false) => Some(TlsMode::Secure),
+            (false, _) => None,
+        };
+
+        Ok(IngestEndpoint {
+            cert_domain: host.to_string(),
+            addrs,
+            tls_mode,
+        })
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ParseIngestEndpointError {
+    #[error("Url most contain a host")]
+    MissingHost,
+
+    // TODO update with the real thing
+    #[error("Invalid URL scheme '{0}'. Must be one of 'modality-ingest' or 'modality-ingest-tls'")]
+    InvalidScheme(String),
+
+    #[error("IO Error")]
+    Io(#[from] std::io::Error),
 }
