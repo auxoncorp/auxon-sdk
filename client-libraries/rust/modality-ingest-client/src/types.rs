@@ -5,22 +5,12 @@ pub use uuid::Uuid;
 
 use crate::protocol::{TAG_LOGICAL_TIME, TAG_NS, TAG_TIMELINE_ID};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-pub struct TimelineAttrKey(pub(crate) u32);
+pub struct AttrKey(pub(crate) u32);
 
-impl From<TimelineAttrKey> for u32 {
-    fn from(k: TimelineAttrKey) -> Self {
-        k.0
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-#[repr(transparent)]
-pub struct EventAttrKey(pub(crate) u32);
-
-impl From<EventAttrKey> for u32 {
-    fn from(k: EventAttrKey) -> Self {
+impl From<AttrKey> for u32 {
+    fn from(k: AttrKey) -> Self {
         k.0
     }
 }
