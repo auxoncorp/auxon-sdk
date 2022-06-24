@@ -29,6 +29,7 @@ pub struct BoundTimelineState {
 pub struct IngestClientCommon {
     pub timeout: Duration,
     connection: IngestConnection,
+    next_id: u32,
 }
 
 impl IngestClientCommon {
@@ -37,6 +38,7 @@ impl IngestClientCommon {
         IngestClientCommon {
             timeout,
             connection,
+            next_id: 0,
         }
     }
 
@@ -51,6 +53,23 @@ impl IngestClientCommon {
     #[doc(hidden)]
     pub async fn send(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
         self.connection.write_msg(msg).await
+    }
+
+    async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
+        if !key_name.starts_with("timeline.") || !key_name.starts_with("event.") {
+            return Err(IngestError::AttrKeyNaming);
+        }
+
+        let wire_id = self.next_id;
+        self.next_id += 1;
+
+        self.send(&IngestMessage::DeclareAttrKey {
+            name: key_name,
+            wire_id,
+        })
+        .await?;
+
+        Ok(AttrKey(wire_id))
     }
 }
 
@@ -220,6 +239,10 @@ impl IngestClient<ReadyState> {
             common: self.common,
         })
     }
+
+    pub async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
+        self.common.attr_key(key_name).await
+    }
 }
 
 impl IngestClient<BoundTimelineState> {
@@ -242,6 +265,10 @@ impl IngestClient<BoundTimelineState> {
             state: ReadyState {},
             common: self.common,
         }
+    }
+
+    pub async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
+        self.common.attr_key(key_name).await
     }
 
     pub async fn timeline_metadata(
@@ -389,6 +416,9 @@ pub enum IngestError {
     #[error("Timeout")]
     Timeout(#[from] tokio::time::error::Elapsed),
 
+    #[error("Event attr keys must begin with 'event.', and timeline attr keys must begin with 'timeline.'")]
+    AttrKeyNaming,
+
     #[error("IO")]
     Io(#[from] std::io::Error),
 }
@@ -405,6 +435,7 @@ impl std::fmt::Debug for IngestError {
             Self::CborEncode(e) => f.debug_tuple("CborEncode").field(e).finish(),
             Self::CborDecode(e) => f.debug_tuple("CborDecode").field(e).finish(),
             Self::Timeout(e) => f.debug_tuple("Timeout").field(e).finish(),
+            Self::AttrKeyNaming => f.debug_tuple("AttrKeyNaming").finish(),
             Self::Io(e) => f.debug_tuple("Io").field(e).finish(),
         }
     }
