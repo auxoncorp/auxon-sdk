@@ -56,7 +56,7 @@ impl IngestClientCommon {
     }
 
     async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
-        if !key_name.starts_with("timeline.") || !key_name.starts_with("event.") {
+        if !(key_name.starts_with("timeline.") || key_name.starts_with("event.") ){
             return Err(IngestError::AttrKeyNaming);
         }
 
