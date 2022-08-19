@@ -1,0 +1,15 @@
+[package]
+name = "modality-reflector-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flexivent = { path = "../../flexivent" }
+flexivent-expressions = { path = "../../flexivent-expressions" }
+serde = { version = "1.0", features=["derive"] }
+thiserror = "1.0.30"
+toml = "0.5"
+url = { version = "2.1" }
+
+[dev-dependencies]
+tempfile = "3.1.0"
