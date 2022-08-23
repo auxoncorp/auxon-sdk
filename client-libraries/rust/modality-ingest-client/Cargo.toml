@@ -10,6 +10,7 @@ homepage = "https://auxon.io/"
 [dependencies]
 minicbor = { version = "0.13.1", features = ["std", "derive"] }
 native-tls = "0.2.10"
+ordered-float = "2.2.0"
 thiserror = "1"
 tokio = { version = "1", features = ["net", "time", "io-util"] }
 tokio-native-tls = "0.3.0"

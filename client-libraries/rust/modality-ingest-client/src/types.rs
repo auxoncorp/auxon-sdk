@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, ops::Deref};
 
 use minicbor::{data::Tag, decode, encode, Decode, Decoder, Encode, Encoder};
+use ordered_float::OrderedFloat;
 pub use uuid::Uuid;
 
 use crate::protocol::{TAG_LOGICAL_TIME, TAG_NS, TAG_TIMELINE_ID};
@@ -215,16 +216,31 @@ impl<'b> Decode<'b> for TimelineId {
 // AttrVal //
 /////////////
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AttrVal {
     TimelineId(Box<TimelineId>),
     String(String),
     Integer(i64),
     BigInt(BigInt),
-    Float(f64),
+    Float(OrderedFloat<f64>),
     Bool(bool),
     Timestamp(Nanoseconds),
     LogicalTime(LogicalTime),
+}
+
+impl std::fmt::Display for AttrVal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AttrVal::String(s) => s.fmt(f),
+            AttrVal::Integer(i) => i.fmt(f),
+            AttrVal::BigInt(bi) => bi.fmt(f),
+            AttrVal::Float(fp) => fp.fmt(f),
+            AttrVal::Bool(b) => b.fmt(f),
+            AttrVal::Timestamp(ns) => ns.fmt(f),
+            AttrVal::LogicalTime(lt) => lt.fmt(f),
+            AttrVal::TimelineId(tid) => tid.fmt(f),
+        }
+    }
 }
 
 impl Encode for AttrVal {
@@ -245,7 +261,7 @@ impl Encode for AttrVal {
                 }
             }
             AttrVal::Float(f) => {
-                e.f64(*f)?;
+                e.f64(**f)?;
             }
             AttrVal::Bool(b) => {
                 e.bool(*b)?;
@@ -291,7 +307,7 @@ impl From<i128> for AttrVal {
 
 impl From<f64> for AttrVal {
     fn from(f: f64) -> AttrVal {
-        AttrVal::Float(f)
+        AttrVal::Float(f.into())
     }
 }
 
