@@ -333,7 +333,7 @@ impl FromStr for AttrVal {
         } else if let Ok(v) = s.parse::<Uuid>() {
             v.into()
         } else {
-            AttrVal::String(s.into())
+            AttrVal::String(s.trim_matches('"').into())
         })
     }
 }
@@ -461,7 +461,14 @@ mod tests {
         // String
         assert_eq!(
             Ok(AttrVal::String("Hello, World!".into())),
+            "\"Hello, World!\"".parse()
+        );
+        assert_eq!(
+            Ok(AttrVal::String("Hello, World!".into())),
             "Hello, World!".parse()
         );
+        assert_eq!(Ok(AttrVal::String("".into())), "\"\"".parse());
+        assert_eq!(Ok(AttrVal::String("".into())), "\"".parse());
+        assert_eq!(Ok(AttrVal::String("".into())), "".parse());
     }
 }
