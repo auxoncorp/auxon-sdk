@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::Deref};
+use std::{cmp::Ordering, ops::Deref, str::FromStr};
 
 use minicbor::{data::Tag, decode, encode, Decode, Decoder, Encode, Encoder};
 use ordered_float::OrderedFloat;
@@ -89,6 +89,13 @@ impl Encode for Nanoseconds {
     }
 }
 
+impl FromStr for Nanoseconds {
+    type Err = std::num::ParseIntError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Nanoseconds(s.parse::<u64>()?))
+    }
+}
+
 /////////////////
 // LogicalTime //
 /////////////////
@@ -154,6 +161,30 @@ impl Encode for LogicalTime {
     fn encode<W: encode::Write>(&self, e: &mut Encoder<W>) -> Result<(), encode::Error<W::Error>> {
         e.tag(TAG_LOGICAL_TIME)?.encode(self.get_raw())?;
         Ok(())
+    }
+}
+
+impl FromStr for LogicalTime {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut segments = s.rsplit(':');
+
+        if let Ok(mut time) = segments.try_fold(Vec::new(), |mut acc, segment| {
+            segment.parse::<u64>().map(|t| {
+                acc.insert(0, t);
+                acc
+            })
+        }) {
+            while time.len() < 4 {
+                time.insert(0, 0)
+            }
+
+            let time_array = time.into_boxed_slice().try_into().map_err(|_| ())?;
+
+            Ok(LogicalTime(time_array))
+        } else {
+            Err(())
+        }
     }
 }
 
@@ -281,6 +312,32 @@ impl Encode for AttrVal {
     }
 }
 
+impl FromStr for AttrVal {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // N.B. Eventually will have to do more advanced deserialization here
+        // as our AttrVals support more interesting variants.
+        Ok(if let Ok(v) = s.to_lowercase().parse::<bool>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<i64>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<i128>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<f64>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<Nanoseconds>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<LogicalTime>() {
+            v.into()
+        } else if let Ok(v) = s.parse::<Uuid>() {
+            v.into()
+        } else {
+            AttrVal::String(s.into())
+        })
+    }
+}
+
 impl From<String> for AttrVal {
     fn from(s: String) -> AttrVal {
         AttrVal::String(s)
@@ -314,5 +371,97 @@ impl From<f64> for AttrVal {
 impl From<bool> for AttrVal {
     fn from(b: bool) -> AttrVal {
         AttrVal::Bool(b)
+    }
+}
+
+impl From<Nanoseconds> for AttrVal {
+    fn from(ns: Nanoseconds) -> AttrVal {
+        AttrVal::Timestamp(ns)
+    }
+}
+
+impl From<LogicalTime> for AttrVal {
+    fn from(lt: LogicalTime) -> AttrVal {
+        AttrVal::LogicalTime(lt)
+    }
+}
+
+// TODO: Should I actually assume that any UUID is a timeline id?
+impl From<Uuid> for AttrVal {
+    fn from(u: Uuid) -> AttrVal {
+        AttrVal::TimelineId(Box::new(u.into()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_logical_time() {
+        let reference = Ok(LogicalTime::quaternary(0u64, 0u64, 0u64, 42u64));
+
+        // should parse
+        assert_eq!(reference, "42".parse());
+        assert_eq!(reference, "0:42".parse());
+        assert_eq!(reference, "0:0:42".parse());
+        assert_eq!(reference, "0:0:0:42".parse());
+
+        // should not parse
+        assert_eq!(Err(()), ":".parse::<LogicalTime>());
+        assert_eq!(Err(()), "::".parse::<LogicalTime>());
+        assert_eq!(Err(()), ":0".parse::<LogicalTime>());
+        assert_eq!(Err(()), "0:".parse::<LogicalTime>());
+        assert_eq!(Err(()), "127.0.0.1:8080".parse::<LogicalTime>());
+        assert_eq!(Err(()), "localhost:8080".parse::<LogicalTime>());
+        assert_eq!(Err(()), "example.com:8080".parse::<LogicalTime>());
+    }
+
+    #[test]
+    fn parse_attr_vals() {
+        // Bool
+        assert_eq!(Ok(AttrVal::Bool(false)), "false".parse());
+        assert_eq!(Ok(AttrVal::Bool(true)), "true".parse());
+
+        // Integer
+        assert_eq!(Ok(AttrVal::Integer(37)), "37".parse());
+
+        // BigInt
+        assert_eq!(
+            Ok(BigInt::new_attr_val(36893488147419103232i128)),
+            "36893488147419103232".parse()
+        );
+
+        // Float
+        assert_eq!(Ok(AttrVal::Float(76.37f64.into())), "76.37".parse());
+
+        // TimelineId
+        assert_eq!(
+            Ok(AttrVal::TimelineId(Box::new(
+                Uuid::parse_str("bec14bc0-1dea-4b68-b138-62f7b6827e35")
+                    .unwrap()
+                    .into()
+            ))),
+            "bec14bc0-1dea-4b68-b138-62f7b6827e35".parse()
+        );
+
+        // Timestamp
+        // N.B. This is impossible to parse as an `AttrVal` since it's just a number. Could try
+        // parsing more complex date strings?
+
+        // LogicalTime
+        // N.B. There is no way to specify a single segment logical time, try 2, 3, and 4 segment
+        let lt_ref = Ok(AttrVal::LogicalTime(LogicalTime::quaternary(
+            0u64, 0u64, 0u64, 42u64,
+        )));
+        assert_eq!(lt_ref, "0:42".parse());
+        assert_eq!(lt_ref, "0:0:42".parse());
+        assert_eq!(lt_ref, "0:0:0:42".parse());
+
+        // String
+        assert_eq!(
+            Ok(AttrVal::String("Hello, World!".into())),
+            "Hello, World!".parse()
+        );
     }
 }
