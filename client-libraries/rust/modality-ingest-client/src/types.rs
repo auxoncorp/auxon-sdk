@@ -316,24 +316,24 @@ impl FromStr for AttrVal {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // N.B. Eventually will have to do more advanced deserialization here
-        // as our AttrVals support more interesting variants.
+        // N.B. Eventually we will want  parsing that is informed by the AttrKey, that will allow
+        // us to parse things like `AttrVal::Timestamp` or a uniary `AttrVal::LogicalTime` which
+        // are both currently parsed as (Big)Int
         Ok(if let Ok(v) = s.to_lowercase().parse::<bool>() {
             v.into()
-        } else if let Ok(v) = s.parse::<i64>() {
-            v.into()
         } else if let Ok(v) = s.parse::<i128>() {
+            // this will decide if the number should be `Integer` or `BigInt` based on value
             v.into()
         } else if let Ok(v) = s.parse::<f64>() {
-            v.into()
-        } else if let Ok(v) = s.parse::<Nanoseconds>() {
             v.into()
         } else if let Ok(v) = s.parse::<LogicalTime>() {
             v.into()
         } else if let Ok(v) = s.parse::<Uuid>() {
             v.into()
         } else {
-            AttrVal::String(s.trim_matches('"').into())
+            // N.B. This will trim any number of leading and trailing single or double quotes, It
+            // does not have any ability to escape quote marks.
+            AttrVal::String(s.trim_matches(|c| c == '"' || c == '\'').into())
         })
     }
 }
@@ -386,7 +386,6 @@ impl From<LogicalTime> for AttrVal {
     }
 }
 
-// TODO: Should I actually assume that any UUID is a timeline id?
 impl From<Uuid> for AttrVal {
     fn from(u: Uuid) -> AttrVal {
         AttrVal::TimelineId(Box::new(u.into()))
@@ -446,11 +445,12 @@ mod tests {
         );
 
         // Timestamp
-        // N.B. This is impossible to parse as an `AttrVal` since it's just a number. Could try
-        // parsing more complex date strings?
+        // N.B. This is impossible to parse as an `AttrVal` since it's just a number which will
+        // have already been parsed as a (Big)Int. Could try parsing more complex date strings?
 
         // LogicalTime
-        // N.B. There is no way to specify a single segment logical time, try 2, 3, and 4 segment
+        // N.B. There is no way to specify a single segment logical time, again it will have
+        // already been parsed as a (Big)Int, try 2, 3, and 4 segment
         let lt_ref = Ok(AttrVal::LogicalTime(LogicalTime::quaternary(
             0u64, 0u64, 0u64, 42u64,
         )));
@@ -465,10 +465,19 @@ mod tests {
         );
         assert_eq!(
             Ok(AttrVal::String("Hello, World!".into())),
+            "'Hello, World!'".parse()
+        );
+        assert_eq!(
+            Ok(AttrVal::String("Hello, World!".into())),
             "Hello, World!".parse()
         );
+
         assert_eq!(Ok(AttrVal::String("".into())), "\"\"".parse());
         assert_eq!(Ok(AttrVal::String("".into())), "\"".parse());
+
+        assert_eq!(Ok(AttrVal::String("".into())), "''".parse());
+        assert_eq!(Ok(AttrVal::String("".into())), "'".parse());
+
         assert_eq!(Ok(AttrVal::String("".into())), "".parse());
     }
 }
