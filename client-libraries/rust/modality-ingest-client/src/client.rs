@@ -1,6 +1,6 @@
 use crate::{
     protocol::{IngestMessage, IngestResponse, PackedAttrKvs},
-    types::{AttrKey, AttrVal, TimelineId},
+    types::{AttrKey, AttrVal, InternedAttrKey, TimelineId},
 };
 use std::{net::SocketAddr, time::Duration};
 use thiserror::Error;
@@ -55,8 +55,14 @@ impl IngestClientCommon {
         self.connection.write_msg(msg).await
     }
 
-    async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
-        if !(key_name.starts_with("timeline.") || key_name.starts_with("event.") ){
+    async fn declare_attr_key<K: Into<AttrKey>>(
+        &mut self,
+        key_name: K,
+    ) -> Result<InternedAttrKey, IngestError> {
+        let key_name = key_name.into();
+
+        if !(key_name.as_ref().starts_with("timeline.") || key_name.as_ref().starts_with("event."))
+        {
             return Err(IngestError::AttrKeyNaming);
         }
 
@@ -64,12 +70,12 @@ impl IngestClientCommon {
         self.next_id += 1;
 
         self.send(&IngestMessage::DeclareAttrKey {
-            name: key_name,
+            name: key_name.into(),
             wire_id,
         })
         .await?;
 
-        Ok(AttrKey(wire_id))
+        Ok(InternedAttrKey(wire_id))
     }
 }
 
@@ -240,8 +246,11 @@ impl IngestClient<ReadyState> {
         })
     }
 
-    pub async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
-        self.common.attr_key(key_name).await
+    pub async fn declare_attr_key(
+        &mut self,
+        key_name: String,
+    ) -> Result<InternedAttrKey, IngestError> {
+        self.common.declare_attr_key(key_name).await
     }
 }
 
@@ -267,13 +276,16 @@ impl IngestClient<BoundTimelineState> {
         }
     }
 
-    pub async fn attr_key(&mut self, key_name: String) -> Result<AttrKey, IngestError> {
-        self.common.attr_key(key_name).await
+    pub async fn declare_attr_key(
+        &mut self,
+        key_name: String,
+    ) -> Result<InternedAttrKey, IngestError> {
+        self.common.declare_attr_key(key_name).await
     }
 
     pub async fn timeline_metadata(
         &mut self,
-        attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
+        attrs: impl IntoIterator<Item = (InternedAttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
         self.common.timeline_metadata(attrs).await
     }
@@ -281,7 +293,7 @@ impl IngestClient<BoundTimelineState> {
     pub async fn event(
         &mut self,
         ordering: u128,
-        attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
+        attrs: impl IntoIterator<Item = (InternedAttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
         self.common.event(ordering, attrs).await
     }
@@ -319,7 +331,7 @@ impl IngestClient<BoundTimelineState> {
 impl IngestClientCommon {
     pub async fn timeline_metadata(
         &mut self,
-        attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
+        attrs: impl IntoIterator<Item = (InternedAttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
         let packed_attrs = PackedAttrKvs(attrs.into_iter().collect());
 
@@ -333,7 +345,7 @@ impl IngestClientCommon {
     pub async fn event(
         &mut self,
         ordering: u128,
-        attrs: impl IntoIterator<Item = (AttrKey, AttrVal)>,
+        attrs: impl IntoIterator<Item = (InternedAttrKey, AttrVal)>,
     ) -> Result<(), IngestError> {
         let packed_attrs = PackedAttrKvs(attrs.into_iter().collect());
 

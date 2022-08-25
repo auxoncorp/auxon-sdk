@@ -6,12 +6,47 @@ pub use uuid::Uuid;
 
 use crate::protocol::{TAG_LOGICAL_TIME, TAG_NS, TAG_TIMELINE_ID};
 
+/// They key naming an attribute.
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd)]
+pub struct AttrKey(pub(crate) String);
+
+impl AttrKey {
+    pub fn new(k: String) -> Self {
+        Self(k)
+    }
+}
+
+impl From<String> for AttrKey {
+    fn from(s: String) -> AttrKey {
+        AttrKey(s)
+    }
+}
+
+impl Into<String> for AttrKey {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl AsRef<str> for AttrKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for AttrKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// The numeric representation of an `AttrKey` after it has been declared on a connection.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-pub struct AttrKey(pub(crate) u32);
+pub struct InternedAttrKey(pub(crate) u32);
 
-impl From<AttrKey> for u32 {
-    fn from(k: AttrKey) -> Self {
+impl From<InternedAttrKey> for u32 {
+    fn from(k: InternedAttrKey) -> Self {
         k.0
     }
 }

@@ -339,29 +339,13 @@ mod raw_toml {
 /// Public-facing, more-semantically-enriched configuration types
 mod refined {
     use super::TomlValue;
-    pub use modality_ingest_client::types::AttrVal;
+    pub use modality_ingest_client::types::{AttrKey, AttrVal};
     use std::collections::BTreeMap;
     use std::fmt;
     use std::path::PathBuf;
     use std::str::FromStr;
     use std::time::Duration;
     use url::Url;
-
-    /// A local string-ish AttrKey value.
-    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
-    pub struct AttrKey(String);
-
-    impl AttrKey {
-        fn new(k: String) -> Self {
-            Self(k)
-        }
-    }
-
-    impl std::fmt::Display for AttrKey {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-            write!(f, "{}", self.0)
-        }
-    }
 
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct Config {

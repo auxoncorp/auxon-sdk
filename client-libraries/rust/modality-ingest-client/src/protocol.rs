@@ -1,4 +1,4 @@
-use crate::types::{AttrKey, AttrVal, TimelineId};
+use crate::types::{AttrVal, InternedAttrKey, TimelineId};
 use minicbor::{data::Tag, encode, Decode, Encode, Encoder};
 
 pub const TAG_NS: Tag = Tag::Unassigned(40000);
@@ -68,7 +68,7 @@ pub enum IngestMessage {
     #[n(113)]
     TimelineMetadata {
         #[n(0)]
-        attrs: PackedAttrKvs<AttrKey>,
+        attrs: PackedAttrKvs<InternedAttrKey>,
     },
 
     #[n(114)]
@@ -77,7 +77,7 @@ pub enum IngestMessage {
         be_ordering: Vec<u8>,
 
         #[n(1)]
-        attrs: PackedAttrKvs<AttrKey>,
+        attrs: PackedAttrKvs<InternedAttrKey>,
     },
 }
 
