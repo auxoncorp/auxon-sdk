@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-modality-ingest-client = { version = "0.1", path = "../modality-ingest-client" }
+modality-api = { version = "0.1", path = "../modality-api", default-features = false }
 serde = { version = "1.0", features=["derive"] }
 thiserror = "1.0.30"
 toml = "0.5"

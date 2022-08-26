@@ -339,7 +339,7 @@ mod raw_toml {
 /// Public-facing, more-semantically-enriched configuration types
 mod refined {
     use super::TomlValue;
-    pub use modality_ingest_client::types::{AttrKey, AttrVal};
+    pub use modality_api::types::{AttrKey, AttrVal};
     use std::collections::BTreeMap;
     use std::fmt;
     use std::path::PathBuf;

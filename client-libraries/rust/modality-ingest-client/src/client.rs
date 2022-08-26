@@ -1,6 +1,6 @@
-use crate::{
-    protocol::{IngestMessage, IngestResponse, PackedAttrKvs},
-    types::{AttrKey, AttrVal, InternedAttrKey, TimelineId},
+use modality_api::{
+    protocol::{IngestMessage, IngestResponse, InternedAttrKey, PackedAttrKvs},
+    types::{AttrKey, AttrVal, TimelineId},
 };
 use std::{net::SocketAddr, time::Duration};
 use thiserror::Error;
@@ -68,6 +68,7 @@ impl IngestClientCommon {
 
         let wire_id = self.next_id;
         self.next_id += 1;
+        let wire_id = wire_id.into();
 
         self.send(&IngestMessage::DeclareAttrKey {
             name: key_name.into(),
@@ -75,7 +76,7 @@ impl IngestClientCommon {
         })
         .await?;
 
-        Ok(InternedAttrKey(wire_id))
+        Ok(wire_id)
     }
 }
 

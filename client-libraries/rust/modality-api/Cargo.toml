@@ -1,0 +1,17 @@
+[package]
+name = "modality-api"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/auxoncorp/modality-sdk"
+description = "Modality SDK"
+homepage = "https://auxon.io/"
+
+[features]
+default = ["client"]
+client = ["minicbor"]
+
+[dependencies]
+minicbor = { version = "0.13.1", features = ["std", "derive"], optional = true }
+ordered-float = "2.2.0"
+uuid = { version = "1.0", features = ["v4"] }
