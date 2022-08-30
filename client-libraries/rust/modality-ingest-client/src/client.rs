@@ -1,7 +1,5 @@
-use modality_api::{
-    protocol::{IngestMessage, IngestResponse, InternedAttrKey, PackedAttrKvs},
-    types::{AttrKey, AttrVal, TimelineId},
-};
+use modality_api::types::{AttrKey, AttrVal, TimelineId};
+use modality_ingest_protocol::{IngestMessage, IngestResponse, InternedAttrKey, PackedAttrKvs};
 use std::{net::SocketAddr, time::Duration};
 use thiserror::Error;
 use tokio::{
