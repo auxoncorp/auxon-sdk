@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "modality-api",
+    "modality-ingest-client",
+    "modality-ingest-protocol",
+    "modality-reflector-config",
+]

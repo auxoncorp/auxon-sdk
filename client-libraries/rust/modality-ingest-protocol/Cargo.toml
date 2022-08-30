@@ -1,0 +1,15 @@
+[package]
+name = "modality-ingest-protocol"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["client"]
+client = []
+
+[dependencies]
+modality-api = { version = "0.1", features = ["client"], path = "../modality-api" }
+minicbor = { version = "0.13.1", features = ["std", "derive"] }
+

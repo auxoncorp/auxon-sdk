@@ -1,11 +1,10 @@
-use crate::types::{AttrKey, AttrVal, TimelineId};
-use minicbor::{data::Tag, encode, Decode, Encode, Encoder};
+use minicbor::{decode, encode, Decode, Decoder, Encode, Encoder};
+use modality_api::{AttrVal, TimelineId};
 
-pub const TAG_NS: Tag = Tag::Unassigned(40000);
-pub const TAG_LOGICAL_TIME: Tag = Tag::Unassigned(40001);
-pub const TAG_TIMELINE_ID: Tag = Tag::Unassigned(40002);
+pub use modality_api::protocol::{TAG_LOGICAL_TIME, TAG_NS, TAG_TIMELINE_ID};
 
-#[derive(Decode, Debug)]
+#[cfg_attr(feature = "client", derive(Decode))]
+#[derive(Debug)]
 pub enum IngestResponse {
     #[n(1)]
     AuthResponse {
@@ -35,7 +34,8 @@ pub enum IngestResponse {
     },
 }
 
-#[derive(Encode, Debug)]
+#[cfg_attr(feature = "client", derive(Encode))]
+#[derive(Debug)]
 pub enum IngestMessage {
     #[n(0)]
     AuthRequest {
@@ -56,7 +56,7 @@ pub enum IngestMessage {
         name: String,
 
         #[n(1)]
-        wire_id: u32,
+        wire_id: InternedAttrKey,
     },
 
     #[n(112)]
@@ -68,7 +68,7 @@ pub enum IngestMessage {
     #[n(113)]
     TimelineMetadata {
         #[n(0)]
-        attrs: PackedAttrKvs<AttrKey>,
+        attrs: PackedAttrKvs<InternedAttrKey>,
     },
 
     #[n(114)]
@@ -77,8 +77,39 @@ pub enum IngestMessage {
         be_ordering: Vec<u8>,
 
         #[n(1)]
-        attrs: PackedAttrKvs<AttrKey>,
+        attrs: PackedAttrKvs<InternedAttrKey>,
     },
+}
+
+/// The numeric representation of an `AttrKey` after it has been declared on a connection.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[repr(transparent)]
+pub struct InternedAttrKey(pub(crate) u32);
+
+impl From<u32> for InternedAttrKey {
+    fn from(i: u32) -> Self {
+        InternedAttrKey(i)
+    }
+}
+
+impl Into<u32> for InternedAttrKey {
+    fn into(self) -> u32 {
+        self.0
+    }
+}
+
+impl Encode for InternedAttrKey {
+    fn encode<W: encode::Write>(&self, e: &mut Encoder<W>) -> Result<(), encode::Error<W::Error>> {
+        e.u32(self.0)?;
+        Ok(())
+    }
+}
+
+impl<'b> Decode<'b> for InternedAttrKey {
+    fn decode(d: &mut Decoder<'b>) -> Result<Self, decode::Error> {
+        let i = d.u32()?;
+        Ok(i.into())
+    }
 }
 
 /// A way to bundle together attr kvs for transport purposes.  The 'u32' is meant to represent an
