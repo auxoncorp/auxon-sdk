@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
-description = "Modality SDK"
+description = "Part of Auxon's Modality SDK"
 homepage = "https://auxon.io/"
 
 [dependencies]
