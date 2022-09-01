@@ -19,9 +19,9 @@ impl From<String> for AttrKey {
     }
 }
 
-impl Into<String> for AttrKey {
-    fn into(self) -> String {
-        self.0
+impl From<AttrKey> for String {
+    fn from(k: AttrKey) -> String {
+        k.0
     }
 }
 

@@ -92,9 +92,9 @@ impl From<u32> for InternedAttrKey {
     }
 }
 
-impl Into<u32> for InternedAttrKey {
-    fn into(self) -> u32 {
-        self.0
+impl From<InternedAttrKey> for u32 {
+    fn from(i: InternedAttrKey) -> u32 {
+        i.0
     }
 }
 
