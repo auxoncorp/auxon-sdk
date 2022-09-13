@@ -339,8 +339,11 @@ mod raw_toml {
 /// Public-facing, more-semantically-enriched configuration types
 mod refined {
     use super::TomlValue;
+    use lazy_static::lazy_static;
     pub use modality_api::types::{AttrKey, AttrVal};
+    use regex::{Captures, Regex};
     use std::collections::BTreeMap;
+    use std::env;
     use std::fmt;
     use std::path::PathBuf;
     use std::str::FromStr;
@@ -480,12 +483,19 @@ mod refined {
 
         #[error("The key '{0}' starts with an invalid character.")]
         InvalidKey(String),
+
+        #[error(transparent)]
+        EnvSub(#[from] EnvSubError),
     }
 
     /// Parsing and representation for 'foo = "bar"' or "baz = true" or "whatever.anything = 42"
     /// type key value attribute pairs.
     ///
-    ///
+    /// The [`AttrKeyEqValuePair::from_str`] implementation supports the following
+    /// environment variable substitution expressions:
+    /// * `${NAME}`
+    /// * `${NAME-default}`
+    /// * `${NAME:-default}`
     #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
     pub struct AttrKeyEqValuePair(pub AttrKey, pub AttrVal);
 
@@ -498,7 +508,10 @@ mod refined {
     impl FromStr for AttrKeyEqValuePair {
         type Err = AttrKeyValuePairParseError;
 
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn from_str(input: &str) -> Result<Self, Self::Err> {
+            // Do environment substitution first
+            let s = envsub(input)?;
+
             let parts: Vec<&str> = s.trim().split('=').map(|p| p.trim()).collect();
             if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
                 return Err(AttrKeyValuePairParseError::Format(s.to_string()));
@@ -800,6 +813,69 @@ mod refined {
                 && self.metadata.is_empty()
         }
     }
+
+    #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+    pub enum EnvSubError {
+        #[error("The environment variable '{0}' contains invalid unicode")]
+        EnvVarNotUnicode(String),
+
+        #[error("The environment variable '{0}' is not set and no default value is specified")]
+        EnvVarNotPresent(String),
+    }
+
+    /// Substitute the values of environment variables.
+    /// Supports the following substitution style expressions:
+    /// * `${NAME}`
+    /// * `${NAME-default}`
+    /// * `${NAME:-default}`
+    fn envsub(input: &str) -> Result<String, EnvSubError> {
+        lazy_static! {
+            // Matches the following patterns with named capture groups:
+            // * '${NAME}' : var = 'NAME'
+            // * '${NAME-default}' : var = 'NAME', def = 'default'
+            // * '${NAME:-default}' : var = 'NAME', def = 'default'
+            static ref ENVSUB_RE: Regex =
+                Regex::new(r"\$\{(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)(:?-(?P<def>.*?))?\}")
+                    .expect("Could not construct envsub Regex");
+        }
+
+        replace_all(&ENVSUB_RE, input, |caps: &Captures| {
+            // SAFETY: the regex requires a match for capture group 'var'
+            let env_var = &caps["var"];
+            match env::var(env_var) {
+                Ok(env_val_val) => Ok(env_val_val),
+                Err(env::VarError::NotUnicode(_)) => {
+                    Err(EnvSubError::EnvVarNotUnicode(env_var.to_owned()))
+                }
+                Err(env::VarError::NotPresent) => {
+                    // Use the default value if one was provided
+                    if let Some(def) = caps.name("def") {
+                        Ok(def.as_str().to_string())
+                    } else {
+                        Err(EnvSubError::EnvVarNotPresent(env_var.to_owned()))
+                    }
+                }
+            }
+        })
+    }
+
+    // This is essentially a fallible version of Regex::replace_all
+    fn replace_all(
+        re: &Regex,
+        input: &str,
+        replacement: impl Fn(&Captures) -> Result<String, EnvSubError>,
+    ) -> Result<String, EnvSubError> {
+        let mut new = String::with_capacity(input.len());
+        let mut last_match = 0;
+        for caps in re.captures_iter(input) {
+            let m = caps.get(0).unwrap();
+            new.push_str(&input[last_match..m.start()]);
+            new.push_str(&replacement(&caps)?);
+            last_match = m.end();
+        }
+        new.push_str(&input[last_match..]);
+        Ok(new)
+    }
 }
 
 #[derive(Debug, Error)]
@@ -873,7 +949,8 @@ pub fn try_to_string(config: &refined::Config) -> Result<String, ConfigWriteErro
 
 #[cfg(test)]
 mod tests {
-    use crate::{try_from_str, try_to_string};
+    use crate::{try_from_str, try_to_string, AttrKeyEqValuePair, ConfigLoadError};
+    use modality_api::types::AttrKey;
 
     /// Note that this toml example is not nearly as compact as it could be
     /// with shorthand choices that will still parse equivalently.
@@ -954,6 +1031,7 @@ moar-custom = [
         let back_out = crate::raw_toml::try_raw_to_string_pretty(&raw).unwrap();
         assert_eq!(FULLY_FILLED_IN_TOML, back_out.as_str());
     }
+
     #[test]
     fn refined_representation_round_trip() {
         let refined: crate::refined::Config = try_from_str(FULLY_FILLED_IN_TOML).unwrap();
@@ -962,6 +1040,7 @@ moar-custom = [
         assert_eq!(refined, refined_prime);
         assert_eq!(FULLY_FILLED_IN_TOML, back_out.as_str());
     }
+
     #[test]
     fn everything_is_optional() {
         let empty = "";
@@ -970,5 +1049,75 @@ moar-custom = [
         let refined_prime: crate::refined::Config = try_from_str(&back_out).unwrap();
         assert_eq!(refined, refined_prime);
         assert_eq!(empty, back_out.as_str());
+    }
+
+    #[test]
+    fn attr_kv_envsub_defaults() {
+        let toml = r#"
+[ingest]
+additional-timeline-attributes = [
+    '${NOT_SET_KEY:-foo} = ${NOT_SET_VAL-1}',
+    '${NOT_SET_KEY-bar} = "${NOT_SET_VAL:-foo}"',
+    '${NOT_SET_KEY-abc} = ${NOT_SET_VAL:-true}',
+]"#;
+        let cfg: crate::refined::Config = try_from_str(toml).unwrap();
+        let attrs = cfg
+            .ingest
+            .map(|i| i.timeline_attributes.additional_timeline_attributes)
+            .unwrap();
+        assert_eq!(
+            attrs,
+            vec![
+                AttrKeyEqValuePair(AttrKey::new("foo".to_string()), 1_i64.into()),
+                AttrKeyEqValuePair(AttrKey::new("bar".to_string()), "foo".into()),
+                AttrKeyEqValuePair(AttrKey::new("abc".to_string()), true.into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn attr_kv_envsub() {
+        let toml = r#"
+[ingest]
+additional-timeline-attributes = [
+    '${CARGO_PKG_NAME} = "${CARGO_PKG_VERSION}"',
+    'int_key = ${CARGO_PKG_VERSION_MINOR}',
+]"#;
+        let cfg: crate::refined::Config = try_from_str(toml).unwrap();
+        let attrs = cfg
+            .ingest
+            .map(|i| i.timeline_attributes.additional_timeline_attributes)
+            .unwrap();
+        assert_eq!(
+            attrs,
+            vec![
+                AttrKeyEqValuePair(
+                    AttrKey::new(env!("CARGO_PKG_NAME").to_string()),
+                    env!("CARGO_PKG_VERSION").into()
+                ),
+                AttrKeyEqValuePair(
+                    AttrKey::new("int_key".to_string()),
+                    env!("CARGO_PKG_VERSION_MINOR")
+                        .parse::<i64>()
+                        .unwrap()
+                        .into()
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn attr_kv_envsub_errors() {
+        let toml = r#"
+[ingest]
+additional-timeline-attributes = [
+    '${NOT_SET_KEY} = 1',
+]"#;
+        match try_from_str(toml).unwrap_err() {
+            ConfigLoadError::DefinitionSemantics { explanation } => {
+                assert_eq!(explanation, "Error in additional-timeline-attributes member. The environment variable 'NOT_SET_KEY' is not set and no default value is specified".to_string())
+            }
+            _ => panic!(),
+        }
     }
 }
