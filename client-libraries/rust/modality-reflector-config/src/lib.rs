@@ -26,158 +26,111 @@ mod raw_toml {
     use std::path::PathBuf;
 
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct Config {
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) ingest: Option<TopLevelIngest>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) mutation: Option<TopLevelMutation>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) plugins: Option<TopLevelPlugins>,
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct TopLevelIngest {
-        #[serde(
-            default,
-            rename = "protocol-parent-url",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) protocol_parent_url: Option<String>,
-
-        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
         pub(crate) allow_insecure_tls: bool,
-        #[serde(
-            default,
-            rename = "max-write-batch-staleness-millis",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) max_write_batch_staleness_millis: Option<u64>,
-
-        #[serde(
-            default,
-            rename = "protocol-child-port",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) protocol_child_port: Option<u16>,
         #[serde(flatten)]
         pub(crate) timeline_attributes: TimelineAttributes,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct TopLevelMutation {
-        #[serde(
-            default,
-            rename = "protocol-parent-url",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) protocol_parent_url: Option<String>,
-
-        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
         pub(crate) allow_insecure_tls: bool,
-
-        #[serde(
-            default,
-            rename = "protocol-child-port",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) protocol_child_port: Option<u16>,
-
-        #[serde(
-            default,
-            rename = "mutator-http-api-port",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) mutator_http_api_port: Option<u16>,
         #[serde(flatten)]
         pub(crate) mutator_attributes: MutatorAttributes,
-        #[serde(
-            default,
-            rename = "external-mutator-urls",
-            skip_serializing_if = "Vec::is_empty"
-        )]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) external_mutator_urls: Vec<String>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct TopLevelPlugins {
-        #[serde(
-            default,
-            rename = "available-ports",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) available_ports: Option<AvailablePorts>,
-        #[serde(
-            default,
-            rename = "plugins-dir",
-            skip_serializing_if = "Option::is_none"
-        )]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) plugins_dir: Option<PathBuf>,
-
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) ingest: Option<PluginsIngest>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) mutation: Option<PluginsMutation>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct AvailablePorts {
-        #[serde(default, rename = "any-local", skip_serializing_if = "Option::is_none")]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub(crate) any_local: Option<bool>,
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) ranges: Vec<[u16; 2]>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct TimelineAttributes {
-        #[serde(
-            default,
-            rename = "additional-timeline-attributes",
-            skip_serializing_if = "Vec::is_empty"
-        )]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) additional_timeline_attributes: Vec<String>,
-        #[serde(
-            default,
-            rename = "override-timeline-attributes",
-            skip_serializing_if = "Vec::is_empty"
-        )]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) override_timeline_attributes: Vec<String>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct MutatorAttributes {
-        #[serde(
-            default,
-            rename = "additional-mutator-attributes",
-            skip_serializing_if = "Vec::is_empty"
-        )]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) additional_mutator_attributes: Vec<String>,
-        #[serde(
-            default,
-            rename = "override-mutator-attributes",
-            skip_serializing_if = "Vec::is_empty"
-        )]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub(crate) override_mutator_attributes: Vec<String>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsIngest {
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) collectors: BTreeMap<String, PluginsIngestMember>,
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) importers: BTreeMap<String, PluginsIngestMember>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsIngestMember {
         #[serde(flatten)]
         pub(crate) timeline_attributes: TimelineAttributes,
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsMutation {
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) mutators: BTreeMap<String, PluginsMutationMember>,
     }
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsMutationMember {
         #[serde(flatten)]
         pub(crate) mutator_attributes: MutatorAttributes,
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
     }
 
