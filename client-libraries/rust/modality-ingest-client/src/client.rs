@@ -12,14 +12,14 @@ use url::Url;
 
 pub struct IngestClient<S> {
     #[allow(unused)]
-    state: S,
-    common: IngestClientCommon,
+    pub(crate) state: S,
+    pub(crate) common: IngestClientCommon,
 }
 
 pub struct UnauthenticatedState {}
 pub struct ReadyState {}
 pub struct BoundTimelineState {
-    timeline_id: TimelineId,
+    pub(crate) timeline_id: TimelineId,
 }
 
 /// Fields used by the client in every state
@@ -53,7 +53,7 @@ impl IngestClientCommon {
         self.connection.write_msg(msg).await
     }
 
-    async fn declare_attr_key<K: Into<AttrKey>>(
+    pub(crate) async fn declare_attr_key<K: Into<AttrKey>>(
         &mut self,
         key_name: K,
     ) -> Result<InternedAttrKey, IngestError> {
