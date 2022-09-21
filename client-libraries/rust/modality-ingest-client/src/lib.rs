@@ -1,4 +1,6 @@
 mod client;
+pub mod dynamic;
+
 pub use client::*;
 
 pub use modality_api as types;
