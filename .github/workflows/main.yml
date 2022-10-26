@@ -1,0 +1,117 @@
+name: CI
+
+on: [pull_request]
+
+env:
+  MODALITY_BUILD_TYPE: "ci"
+
+
+jobs:
+  stable_build_and_test:
+    name: Stable Build and Test Rust
+    timeout-minutes: 90
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Install system packages
+        run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel
+
+      - name: Free up some disk space
+        run: |
+          echo "----------------------------------------------"
+          echo "BEFORE: "
+          sudo df -h /
+          echo "----------------------------------------------"
+
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+
+          echo "----------------------------------------------"
+          echo "AFTER: "
+          sudo df -h /
+          echo "----------------------------------------------"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install stable rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt, clippy
+          toolchain: stable
+          override: true
+
+
+      - name: Put local cargo bin on the path
+        run: |
+          echo "~/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Print tool versions
+        run: |
+          echo `rustup default`
+          echo `which rustc`
+          echo `which cargo`
+          echo `which cargo-clippy`
+          echo `which cargo-fmt`
+          echo `rustc --version`
+          echo `cargo --version`
+          echo `cargo-clippy --version`
+          echo `cargo-fmt --version`
+
+      - name: Fetch deps
+        run: cargo fetch
+        working-directory: ./client-libraries/rust
+
+      - name: Lint with Clippy
+        run: cargo clippy
+        working-directory: ./client-libraries/rust
+
+      - name: Test
+        run: cargo test --all-features --all-targets
+        working-directory: ./client-libraries/rust
+
+  windows:
+    name: Windows Rust
+    timeout-minutes: 90
+    runs-on: windows-latest
+    steps:
+      - name: Support longpaths
+        run: git config --system core.longpaths true
+
+      - name: Pre-Checkout Total Space
+        shell: pwsh
+        run: |
+          Get-CimInstance -ClassName Win32_LogicalDisk
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install stable rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt, clippy
+          toolchain: stable
+          override: true
+
+      - name: Fetch deps
+        run: cargo fetch
+        working-directory: ./client-libraries/rust
+
+      - name: Post-Deps Clear Temp Dir
+        shell: pwsh
+        run: |
+          Remove-Item -Path $env:TEMP\* -Recurse -Force -ErrorAction SilentlyContinue
+      - name: Post-Deps Total Space
+        shell: pwsh
+        run: |
+          Get-CimInstance -ClassName Win32_LogicalDisk
+
+      - name: Lint with Clippy
+        run: cargo clippy
+        working-directory: ./client-libraries/rust
+
+      - name: Test
+        run: cargo test --all-features --all-targets
+        working-directory: ./client-libraries/rust
