@@ -2,7 +2,7 @@ use modality_api::{AttrVal, TimelineId};
 use modality_ingest_protocol::{IngestMessage, InternedAttrKey};
 use thiserror::Error;
 
-use crate::{IngestClientCommon, IngestError, IngestClient, ReadyState, BoundTimelineState};
+use crate::{BoundTimelineState, IngestClient, IngestClientCommon, IngestError, ReadyState};
 
 /// A more dynamic ingest client, for places where the session types are difficult to use.
 pub struct DynamicIngestClient {
@@ -14,7 +14,7 @@ impl From<IngestClient<ReadyState>> for DynamicIngestClient {
     fn from(c: IngestClient<ReadyState>) -> Self {
         Self {
             common: c.common,
-            bound_timeline: None
+            bound_timeline: None,
         }
     }
 }
@@ -23,7 +23,7 @@ impl From<IngestClient<BoundTimelineState>> for DynamicIngestClient {
     fn from(c: IngestClient<BoundTimelineState>) -> Self {
         Self {
             common: c.common,
-            bound_timeline: Some(c.state.timeline_id)
+            bound_timeline: Some(c.state.timeline_id),
         }
     }
 }
@@ -81,5 +81,5 @@ pub enum DynamicIngestError {
     IngestError(#[from] IngestError),
 
     #[error("Invalid state: a timeline must be bound before submitting events")]
-    NoBoundTimeline
+    NoBoundTimeline,
 }
