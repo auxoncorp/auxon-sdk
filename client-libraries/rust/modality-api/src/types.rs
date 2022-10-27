@@ -4,7 +4,7 @@ use ordered_float::OrderedFloat;
 pub use uuid::Uuid;
 
 /// They key naming an attribute.
-#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct AttrKey(pub(crate) String);
 
 impl AttrKey {
