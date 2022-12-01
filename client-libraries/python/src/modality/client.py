@@ -6,6 +6,78 @@ import os.path
 class Modality:
     modality_url = "http://localhost:14181/v1"
     auth_token = None
+    default_attrs = {
+        "TIMELINE": {
+            "ID": "timeline.id",
+            "NAME": "timeline.name",
+            "DESCRIPTION": "timeline.description",
+            "SOURCE_FILE": "timeline.source.file",
+            "SOURCE_LINE": "timeline.source.line",
+            "TIME_DOMAIN": "timeline.time_domain",
+            "TIME_RESOLUTION": "timeline.time_resolution",
+            "RUN_ID": "timeline.run_id",
+
+            "INGEST_SOURCE": "timeline.ingest_source",
+            "INGEST_EDGE_ID": "timeline.ingest_edge_id",
+            "RECEIVE_TIME": "timeline.receive_time",
+        },
+
+        "EVENT": {
+            "COORDINATES": "event.coordinates",
+            "NAME": "event.name",
+            "DESCRIPTION": "event.description",
+            "MESSAGE": "event.message",
+            "LOGICAL_TIME": "event.logical_time",
+            "TIMESTAMP": "event.timestamp",
+            "NONCE": "event.nonce",
+            "IS_FAILURE": "event.is_failure",
+            "IS_EXPECTATION": "event.is_expectation",
+            "SEVERITY": "event.severity",
+            "PAYLOAD": "event.payload",
+            "SOURCE_FILE": "event.source.file",
+            "SOURCE_LINE": "event.source.line",
+
+            # The ID of a remote timeline that is known to causally precede this event. Must also come
+            # with at least one of REMOTE_LOGICAL_TIME, REMOTE_TIMESTAMP, or REMOTE_NONCE.
+            "REMOTE_TIMELINE_ID": "event.interaction.remote_timeline_id",
+            "REMOTE_LOGICAL_TIME": "event.interaction.remote_logical_time",
+            "REMOTE_TIMESTAMP": "event.interaction.remote_timestamp",
+            "REMOTE_NONCE": "event.interaction.remote_nonce",
+
+            # Expected to be the i128 representation of a mutation's UUID bytes (interpreted in a little-endian manner).
+            "MUTATION_ID": "event.mutation.id",
+            # Whether the event-name-associated stage of the mutation lifecycle happened correctly or not. Expected to be boolean.
+            "MUTATION_SUCCESS": "event.mutation.success",
+            # Expected to be the i128 representation of a mutator id's UUID bytes (interpreted in a little-endian manner).
+            "MUTATOR_ID": "event.mutator.id",
+        },
+
+        "MUTATOR": {
+            "ID": "mutator.id",
+            "NAME": "mutator.name",
+            "DESCRIPTION": "mutator.description",
+            "LAYER": "mutator.layer",
+            "GROUP": "mutator.group",
+            "STATEFULNESS": "mutator.statefulness",
+            "OPERATION": "mutator.operation",
+            "SAFETY": "mutator.safety",
+            "SOURCE_FILE": "mutator.source.file",
+            "SOURCE_LINE": "mutator.source.line",
+
+            "MUTATION_EDGE_ID": "mutator.mutation_edge_id",
+        },
+
+        "SEGMENT": {
+            "NAME": "segment.name",
+            "RULE_NAME": "segment.rule_name",
+            "WORKSPACE_VERSION_ID": "segment.workspace_version_id",
+            "LATEST_RECEIVE_TIME": "segment.latest_receive_time",
+        },
+    }
+    default_attr_keys = list(default_attrs["TIMELINE"].values()) + \
+                        list(default_attrs["EVENT"].values()) + \
+                        list(default_attrs["MUTATOR"].values()) + \
+                        list(default_attrs["SEGMENT"].values())
 
     def __init__(self, modality_url=None, auth_token=None):
         # TODO read from cli config file if present
