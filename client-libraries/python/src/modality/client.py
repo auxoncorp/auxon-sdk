@@ -1,7 +1,11 @@
 from urllib.parse import urlparse, urlencode
 from copy import deepcopy
 import appdirs
+import os
 import os.path
+from urllib.request import urlopen, Request
+import json
+
 
 class Modality:
     modality_url = "http://localhost:14181/v1"
@@ -93,16 +97,19 @@ class Modality:
                     self.modality_url = modality_toml_dict['modalityd']
 
         if not self.auth_token:
-            # TODO: get token from the env too
             cli_config_dir = appdirs.user_config_dir("modality_cli")
             token_file = os.path.join(cli_config_dir, ".user_auth_token")
-            if os.path.exists(token_file):
+
+            # Prefer env-var over user-global config file
+            if "MODALITY_AUTH_TOKEN" in os.environ:
+                self.auth_token = os.environ.get('MODALITY_AUTH_TOKEN').rstrip()
+            elif os.path.exists(token_file):
                 with open(token_file, 'r') as file:
                     self.auth_token = file.read().rstrip()
 
-
     def events_data_frame(self,
-                          workspace_name=None, workspace_version_id=None, segments=None, only_newest_segment_in_workspace=None, timeline_filter=None,
+                          workspace_name=None, workspace_version_id=None, segments=None,
+                          only_newest_segment_in_workspace=None, timeline_filter=None,
                           split_by_segment=None, event_filter=None, include_timeline_attrs=None, include_attrs=None):
         r"""Load events from Modality into a pandas dataframe.
 
@@ -118,8 +125,10 @@ class Modality:
         """
 
         url = self._events_data_frame_url(workspace_name=workspace_name, workspace_version_id=workspace_version_id,
-                                          segments=segments,only_newest_segment_in_workspace=only_newest_segment_in_workspace, timeline_filter=timeline_filter,
-                                          split_by_segment=split_by_segment, event_filter = event_filter,
+                                          segments=segments,
+                                          only_newest_segment_in_workspace=only_newest_segment_in_workspace,
+                                          timeline_filter=timeline_filter,
+                                          split_by_segment=split_by_segment, event_filter=event_filter,
                                           include_timeline_attrs=include_timeline_attrs, include_attrs=include_attrs)
 
         import pandas as pd
@@ -134,7 +143,8 @@ class Modality:
         return df
 
     def event_value_distributions_data_frame(self,
-                                             workspace_name=None, workspace_version_id=None, segments=None, only_newest_segment_in_workspace=None, timeline_filter=None,
+                                             workspace_name=None, workspace_version_id=None, segments=None,
+                                             only_newest_segment_in_workspace=None, timeline_filter=None,
                                              group_keys=None, event_filter=None, include_attrs=None):
         r"""Load statistical sketch of attribute values from Modality into a pandas dataframe.
 
@@ -149,10 +159,13 @@ class Modality:
         :param array[str] include_attrs: Include these specific attrs on each event.
         """
 
-        url = self._event_value_distributions_data_frame_url(workspace_name=workspace_name, workspace_version_id=workspace_version_id,
-                                                             segments=segments,only_newest_segment_in_workspace=only_newest_segment_in_workspace,
+        url = self._event_value_distributions_data_frame_url(workspace_name=workspace_name,
+                                                             workspace_version_id=workspace_version_id,
+                                                             segments=segments,
+                                                             only_newest_segment_in_workspace=only_newest_segment_in_workspace,
                                                              timeline_filter=timeline_filter,
-                                                             group_keys=group_keys, event_filter=event_filter, include_attrs=include_attrs)
+                                                             group_keys=group_keys, event_filter=event_filter,
+                                                             include_attrs=include_attrs)
 
         import pandas as pd
         dtype_dict = {'event.timestamp': 'datetime64[ns]',
@@ -164,6 +177,113 @@ class Modality:
 
         df = pd.read_json(url, lines=True, dtype=dtype_dict, storage_options=storage_options)
         return df
+
+    def experiment_overview(self, experiment_name,
+                            workspace_name=None, workspace_version_id=None, segments=None,
+                            only_newest_segment_in_workspace=None, timeline_filter=None,
+                            ):
+        r"""
+
+        :param str experiment_name: The star of the show
+        :param str workspace_name: Which workspace's data are we focusing on to find the effects of this experiment?
+        :param str workspace_version_id: Which workspace's data are we focusing on to find the effects of this experiment?
+        :param array[object] segments: A collection of WorkspaceSegment objects to narrow the focus of the search for effects of the experiment.
+        :param bool only_newest_segment_in_workspace: If you specified the workspace, limit to the newest segment in that workspace.
+        :param timeline_filter: Limit to events logged on timelines which match this Modality filter expression. e.g. "_.name = 'bar'".
+        :return:
+        """
+        u = self._modality_url("experiment/get_experiment", [])
+        custom_headers = {
+            "Content-Type": "application/json"
+        }
+        if self.auth_token:
+            custom_headers["X-Auxon-Auth-Token"] = self.auth_token
+
+        req_body = {'name': experiment_name, 'scope': {}}
+        if segments:
+            req_body['scope']['WorkspaceSegments'] = {"timeline_filter": timeline_filter, "segments": segments}
+        elif only_newest_segment_in_workspace:
+            if workspace_version_id:
+                req_body['scope']['NewestSegmentInWorkspace'] = {"timeline_filter": timeline_filter,
+                                                  "workspace": {"Version": workspace_version_id}}
+            elif workspace_name:
+                req_body['scope']['NewestSegmentInWorkspace'] = {"timeline_filter": timeline_filter, "workspace": {"Name": workspace_name}}
+            else:
+                raise ValueError('Either workspace_version_id or workspace_name is required if only_newest_segment_in_workspace is True')
+        elif workspace_version_id:
+            req_body['scope']['Workspace'] = {"timeline_filter": timeline_filter,
+                                              "workspace": {"Version": workspace_version_id}}
+        elif workspace_name:
+            req_body['scope']['Workspace'] = {"timeline_filter": timeline_filter, "workspace": {"Name": workspace_name}}
+        else:
+            req_body['scope']['Global'] = {"timeline_filter": timeline_filter}
+        req = Request(
+            u,
+            json.dumps(req_body).encode('ascii'),
+            custom_headers,
+            method='POST'
+        )
+        with urlopen(req) as response:
+            json_response = json.load(response)
+            return json_response
+
+        return None
+
+    def workspace_segments(self, workspace_name=None, workspace_version_id=None):
+        r"""Retrieve the workspace segments for the given workspace"""
+        # Make sure we have the workspace version id
+        workspace_version_id = self._resolve_workspace_version_id(workspace_name=workspace_name, workspace_version_id=workspace_version_id)
+        custom_headers = {
+            "Content-Type": "application/json"
+        }
+        if self.auth_token:
+            custom_headers["X-Auxon-Auth-Token"] = self.auth_token
+
+        list_segs_u = self._modality_url("inspection/list_workspace_segments", [])
+        req_body = {"workspace_version_id": workspace_version_id}
+        req = Request(
+            list_segs_u,
+            json.dumps(req_body).encode('ascii'),
+            custom_headers,
+            method='POST'
+        )
+        with urlopen(req) as response:
+            json_resp = json.load(response)
+            if 'Ok' in json_resp:
+                if 'segments' in json_resp['Ok']:
+                    return json_resp['Ok']['segments']
+                else:
+                    return []
+            else:
+                raise Exception("Unsuccessful attempt at getting workspace segments. {}".format(json_resp['Err']))
+
+    def _resolve_workspace_version_id(self, workspace_name=None, workspace_version_id=None):
+        if workspace_version_id:
+            return workspace_version_id
+
+        custom_headers = {
+            "Content-Type": "application/json"
+        }
+        if self.auth_token:
+            custom_headers["X-Auxon-Auth-Token"] = self.auth_token
+
+        if not workspace_name:
+            raise ValueError("Either workspace_version_id or workspace_name must be provided")
+
+        get_ws_u = self._modality_url("workspace/get_workspace_definition", [])
+        req_body = {"workspace_name": workspace_name}
+        req = Request(
+            get_ws_u,
+            json.dumps(req_body).encode('ascii'),
+            custom_headers,
+            method='POST'
+        )
+        with urlopen(req) as response:
+            json_resp = json.load(response)
+            if 'Ok' in json_resp:
+                return json_resp['Ok']['version']
+            else:
+                raise Exception("Unsuccessful attempt at getting workspace. {}".format(json_resp['Err']))
 
     def _flat_scope_url_params(self, workspace_name=None, workspace_version_id=None, segments=None,
                                only_newest_segment_in_workspace=None, timeline_filter=None):
@@ -181,7 +301,8 @@ class Modality:
                 url_params.append(('segments', seg))
 
         if only_newest_segment_in_workspace:
-            url_params.append(('only_newest_segment_in_workspace', 'true' if only_newest_segment_in_workspace else 'false'))
+            url_params.append(
+                ('only_newest_segment_in_workspace', 'true' if only_newest_segment_in_workspace else 'false'))
 
         if timeline_filter:
             url_params.append(('timeline_filter', timeline_filter))
@@ -189,11 +310,15 @@ class Modality:
         return url_params
 
     def _events_data_frame_url(self,
-                               workspace_name=None, workspace_version_id=None, segments=None, only_newest_segment_in_workspace=None, timeline_filter=None,
-                               split_by_segment=None, event_filter=None, include_timeline_attrs=None, include_attrs=None):
+                               workspace_name=None, workspace_version_id=None, segments=None,
+                               only_newest_segment_in_workspace=None, timeline_filter=None,
+                               split_by_segment=None, event_filter=None, include_timeline_attrs=None,
+                               include_attrs=None):
 
-        url_params = self._flat_scope_url_params(workspace_name=workspace_name, workspace_version_id=workspace_version_id, segments=segments,
-                                                 only_newest_segment_in_workspace=only_newest_segment_in_workspace, timeline_filter=timeline_filter)
+        url_params = self._flat_scope_url_params(workspace_name=workspace_name,
+                                                 workspace_version_id=workspace_version_id, segments=segments,
+                                                 only_newest_segment_in_workspace=only_newest_segment_in_workspace,
+                                                 timeline_filter=timeline_filter)
 
         if split_by_segment:
             url_params.append(('split_by_segment', 'true' if split_by_segment else 'false'))
@@ -212,11 +337,14 @@ class Modality:
 
     def _event_value_distributions_data_frame_url(
             self,
-            workspace_name=None, workspace_version_id=None, segments=None, only_newest_segment_in_workspace=None, timeline_filter=None,
+            workspace_name=None, workspace_version_id=None, segments=None, only_newest_segment_in_workspace=None,
+            timeline_filter=None,
             group_keys=None, event_filter=None, include_attrs=None):
 
-        url_params = self._flat_scope_url_params(workspace_name=workspace_name, workspace_version_id=workspace_version_id, segments=segments,
-                                                 only_newest_segment_in_workspace=only_newest_segment_in_workspace, timeline_filter=timeline_filter)
+        url_params = self._flat_scope_url_params(workspace_name=workspace_name,
+                                                 workspace_version_id=workspace_version_id, segments=segments,
+                                                 only_newest_segment_in_workspace=only_newest_segment_in_workspace,
+                                                 timeline_filter=timeline_filter)
 
         if group_keys:
             for group_key in group_keys:
@@ -240,4 +368,3 @@ class Modality:
             url += "?" + urlencode(query_params)
 
         return url
-
