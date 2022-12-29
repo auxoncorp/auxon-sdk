@@ -4,5 +4,30 @@ members = [
     "modality-api",
     "modality-ingest-client",
     "modality-ingest-protocol",
+    "modality-mutator-http",
+    "modality-mutator-interface",
     "modality-reflector-config",
 ]
+
+[workspace.dependencies]
+async-trait = "0.1.52"
+axum = "0.6"
+axum-extra = "0.6"
+axum-macros = "0.6"
+clap = { version = "4", features = ["color", "derive", "env"] }
+hex = "0.4"
+minicbor = {version = "0.13.1", features = ["std", "derive"] }
+parking_lot = "0.12.0"
+percent-encoding = { version = "2.1.0" }
+proptest = { version = "1.0", default-features = false, features = ["std"] }
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "stream", "json", "default-tls"] }
+schemars = { version = "0.8.8", features=["uuid1", "chrono"] }
+serde = { version = "1.0", features=["derive"] }
+serde_json = { version = "1.0" , features = ["float_roundtrip"] }
+thiserror = "1"
+tokio = { version = "1" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"] }
+utoipa = { version = "2.4", features = ["uuid", "axum_extras"] }
+utoipa-swagger-ui = { version = "3.0", features = ["axum"] }
+uuid = { version = "1", default-features = false, features = ["std", "v4", "v5", "serde"] }
