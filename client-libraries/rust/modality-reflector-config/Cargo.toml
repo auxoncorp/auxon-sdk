@@ -4,7 +4,11 @@ version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
-description = "Part of Auxon's Modality SDK"
+description = """
+  A format definition and parser for the `modality-reflector`, to be used \
+  by custom reflector plugins that can be hosted within the reflector \
+  itself.\
+"""
 homepage = "https://auxon.io/"
 
 [dependencies]

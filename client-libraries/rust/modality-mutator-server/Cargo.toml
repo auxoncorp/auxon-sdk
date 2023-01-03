@@ -2,8 +2,10 @@
 name = "modality-mutator-server"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/auxoncorp/modality-sdk"
+description = "An HTTP server template that can be used to serve mutators to Modality."
+homepage = "https://auxon.io/"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 default = []
 server = ["async-trait", "axum", "parking_lot", "percent-encoding", "serde_json", "tracing", "tokio", "utoipa", "utoipa-swagger-ui"]

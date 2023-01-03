@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
-description = "Part of Auxon's Modality SDK"
+description = "The protocol definition of the modality ingest plane."
 homepage = "https://auxon.io/"
 
 [features]

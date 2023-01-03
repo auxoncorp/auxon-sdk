@@ -2,6 +2,9 @@
 name = "modality-plugin-utils"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/auxoncorp/modality-sdk"
+description = "Various helpful utilities for writing modality-reflector plugins."
+homepage = "https://auxon.io/"
 
 [dependencies]
 modality-auth-token = { workspace = true }

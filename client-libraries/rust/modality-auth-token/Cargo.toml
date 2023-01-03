@@ -2,6 +2,9 @@
 name = "modality-auth-token"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/auxoncorp/modality-sdk"
+description = "Provides standardized access to local modality auth tokens."
+homepage = "https://auxon.io/"
 
 [features]
 default = []

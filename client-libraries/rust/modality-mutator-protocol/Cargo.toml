@@ -2,6 +2,9 @@
 name = "modality-mutator-protocol"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/auxoncorp/modality-sdk"
+description = "The protocol definition of the Modality mutation plane."
+homepage = "https://auxon.io/"
 
 [features]
 default = []
