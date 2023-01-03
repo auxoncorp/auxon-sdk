@@ -72,6 +72,14 @@ jobs:
         run: cargo test --all-features --all-targets
         working-directory: ./client-libraries/rust
 
+      - name: Lint C API with Clippy
+        run: cargo clippy
+        working-directory: ./client-libraries/c
+
+      - name: Build C API Tests
+        run: make all
+        working-directory: ./client-libraries/c/ctest
+
   windows:
     name: Windows Rust
     timeout-minutes: 90
@@ -115,3 +123,7 @@ jobs:
       - name: Test
         run: cargo test --all-features --all-targets
         working-directory: ./client-libraries/rust
+
+      - name: Lint C API with Clippy
+        run: cargo clippy
+        working-directory: ./client-libraries/c

@@ -17,6 +17,13 @@ Modality itself.
 See the [rust sdk](./client-libraries/rust/) directly for more
 information.
 
+### C
+
+The C & C++ FFI for Auxon's Modality SDK.
+
+See the [C sdk](./client-libraries/c/) directly for more
+information.
+
 ## License
 
 See [LICENSE](./LICENSE) for more details.
