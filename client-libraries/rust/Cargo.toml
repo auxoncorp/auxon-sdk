@@ -7,17 +7,30 @@ members = [
     "modality-ingest-protocol",
     "modality-mutator-http",
     "modality-mutator-interface",
+    "modality-plugin-utils",
     "modality-reflector-config",
 ]
 
 [workspace.dependencies]
+modality-api = { version = "0", path = "modality-api" }
+modality-auth-token = { version = "0", path = "modality-auth-token" }
+modality-ingest-client = { version = "0", path = "modality-ingest-client" }
+modality-ingest-protocol = { version = "0", path = "modality-ingest-protocol" }
+modality-mutator-http = { version = "0", path = "modality-mutator-http" }
+modality-mutator-interface = { version = "0", path = "modality-mutator-interface" }
+modality-plugin-utils = { version = "0", path = "modality-plugin-utils" }
+modality-reflector-config = { version = "0", path = "modality-reflector-config" }
+
 async-trait = "0.1.52"
 axum = "0.6"
 axum-extra = "0.6"
 axum-macros = "0.6"
 clap = { version = "4", features = ["color", "derive", "env"] }
+exitcode = "1.1.2"
+futures = "0.3.21"
 hex = "0.4"
 minicbor = {version = "0.13.1", features = ["std", "derive"] }
+nix = "0.25.0"
 parking_lot = "0.12.0"
 percent-encoding = { version = "2.1.0" }
 proptest = { version = "1.0", default-features = false, features = ["std"] }
@@ -31,4 +44,5 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"] }
 utoipa = { version = "2.4", features = ["uuid", "axum_extras"] }
 utoipa-swagger-ui = { version = "3.0", features = ["axum"] }
+url = { version = "2.1", features = ["serde"] }
 uuid = { version = "1", default-features = false, features = ["std", "v4", "v5", "serde"] }

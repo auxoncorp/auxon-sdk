@@ -1,0 +1,21 @@
+[package]
+name = "modality-plugin-utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+modality-auth-token = { workspace = true }
+tracing-modality = "0.2.1"
+
+clap = { workspace = true }
+exitcode = { workspace = true }
+futures = { workspace = true }
+modality-reflector-config = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time", "tracing", "net", "signal"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(target_family = "unix")'.dependencies]
+nix = { workspace = true }
