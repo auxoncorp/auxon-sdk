@@ -24,3 +24,23 @@ tokio = { workspace = true, features = ["sync"], optional = true }
 tracing = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
+
+[dev-dependencies]
+modality-plugin-utils = { workspace = true }
+async-trait = { workspace = true }
+clap = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true, features = ["macros", "sync", "time", "tracing"] }
+tracing-subscriber = { workspace = true }
+
+[[example]]
+name = "no_mutators"
+required-features = ["server"]
+
+[[example]]
+name = "single_mutator"
+required-features = ["server"]
+
+[[example]]
+name = "multi_mutator"
+required-features = ["server"]
