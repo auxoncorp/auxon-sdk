@@ -2,6 +2,7 @@
 
 members = [
     "modality-api",
+    "modality-auth-token",
     "modality-ingest-client",
     "modality-ingest-protocol",
     "modality-mutator-http",

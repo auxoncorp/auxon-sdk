@@ -1,0 +1,19 @@
+[package]
+name = "modality-auth-token"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+test_support = ["proptest"]
+
+[dependencies]
+hex = { workspace = true }
+thiserror = { workspace = true }
+
+proptest = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
