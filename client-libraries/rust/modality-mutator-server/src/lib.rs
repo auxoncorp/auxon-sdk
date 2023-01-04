@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 #[cfg(feature = "server")]
 pub mod server;
 
-use modality_mutator_interface::attrs::{AttrKey, AttrVal};
+use modality_mutator_protocol::attrs::{AttrKey, AttrVal};
 use uuid::Uuid;
 
 /// Mutator representation for HTTP

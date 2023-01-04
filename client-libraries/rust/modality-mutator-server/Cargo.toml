@@ -1,5 +1,5 @@
 [package]
-name = "modality-mutator-http"
+name = "modality-mutator-server"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,7 @@ default = []
 server = ["async-trait", "axum", "parking_lot", "percent-encoding", "serde_json", "tracing", "tokio", "utoipa", "utoipa-swagger-ui"]
 
 [dependencies]
-modality-mutator-interface = { path = "../modality-mutator-interface" , features = ["serde"]}
+modality-mutator-protocol = { workspace = true , features = ["serde"]}
 serde = { workspace = true }
 uuid = { workspace = true }
 

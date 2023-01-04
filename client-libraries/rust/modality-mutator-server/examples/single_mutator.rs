@@ -1,11 +1,11 @@
 use async_trait::async_trait;
-use modality_mutator_interface::actuator::MutatorActuator;
-use modality_mutator_interface::attrs::{AttrKey, AttrType, AttrVal};
-use modality_mutator_interface::descriptor::owned::{
+use modality_mutator_protocol::actuator::MutatorActuator;
+use modality_mutator_protocol::attrs::{AttrKey, AttrType, AttrVal};
+use modality_mutator_protocol::descriptor::owned::{
     MutatorLayer, MutatorOperation, OrganizationCustomMetadata, OwnedMutatorDescriptor,
     OwnedMutatorParamDescriptor,
 };
-use modality_mutator_interface::mutator::{ActuatorDescriptor, CombinedMutator};
+use modality_mutator_protocol::mutator::{ActuatorDescriptor, CombinedMutator};
 use modality_plugin_utils::BearingConfigFilePath;
 use std::collections::{BTreeMap, HashMap};
 use std::net::Ipv4Addr;
@@ -37,7 +37,7 @@ fn main() {
                 .as_ref()
                 .and_then(|m| m.mutator_http_api_port)
                 .unwrap_or(8080);
-            modality_mutator_http::server::serve_mutators(
+            modality_mutator_server::server::serve_mutators(
                 mutators,
                 None,
                 (Ipv4Addr::UNSPECIFIED, port),

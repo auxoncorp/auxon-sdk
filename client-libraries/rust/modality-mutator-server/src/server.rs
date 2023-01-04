@@ -1,7 +1,7 @@
 use crate::MUTATOR_API_KEY_HEADER;
 use async_trait::async_trait;
 use axum::{extract::FromRequestParts, http::StatusCode, Router};
-use modality_mutator_interface::mutator::ActuatorDescriptor;
+use modality_mutator_protocol::mutator::ActuatorDescriptor;
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::net::{SocketAddr, TcpListener};
@@ -94,7 +94,7 @@ pub(crate) mod mutator {
     use axum::http::StatusCode;
     use axum::routing::{get, post};
     use axum::{Json, Router};
-    use modality_mutator_interface::mutator::ActuatorDescriptor;
+    use modality_mutator_protocol::mutator::ActuatorDescriptor;
 
     use super::ValidApiKeyHeader;
 
@@ -301,13 +301,13 @@ mod tests {
     use crate::server::serve_mutators_on_listener;
     use crate::{Mutation, Mutator};
     use async_trait::async_trait;
-    use modality_mutator_interface::actuator::MutatorActuator;
-    use modality_mutator_interface::attrs::{AttrKey, AttrType, AttrVal};
-    use modality_mutator_interface::descriptor::owned::{
+    use modality_mutator_protocol::actuator::MutatorActuator;
+    use modality_mutator_protocol::attrs::{AttrKey, AttrType, AttrVal};
+    use modality_mutator_protocol::descriptor::owned::{
         MutatorOperation, OrganizationCustomMetadata, OwnedMutatorDescriptor,
         OwnedMutatorParamDescriptor,
     };
-    use modality_mutator_interface::descriptor::MutatorDescriptor;
+    use modality_mutator_protocol::descriptor::MutatorDescriptor;
     use std::net::TcpListener;
     use std::str::FromStr;
     use std::sync::atomic::{AtomicI64, Ordering};
