@@ -2,6 +2,7 @@
 name = "modality-mutator-server"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
 description = "An HTTP server template that can be used to serve mutators to Modality."
 homepage = "https://auxon.io/"
