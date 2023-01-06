@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.dependencies]
-modality-api = { version = "0.1", path = "modality-api" }
+modality-api = { version = "0.1.1", path = "modality-api" }
 modality-auth-token = { version = "0.1", path = "modality-auth-token" }
 modality-ingest-client = { version = "0.2", path = "modality-ingest-client" }
 modality-ingest-protocol = { version = "0.1", path = "modality-ingest-protocol" }
