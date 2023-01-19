@@ -1,0 +1,22 @@
+[project]
+name = "modality"
+version = "0.0.1"
+authors = [
+  { name="Russell Mull", email="russell@auxon.io" },
+]
+description = "A python client library for the Modality API"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/auxoncorp/modality-sdk/client-libraries/python"
+"Bug Tracker" = "https://github.com/auxoncorp/modality-sdk/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

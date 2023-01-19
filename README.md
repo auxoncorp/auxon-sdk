@@ -24,6 +24,13 @@ The C & C++ FFI for Auxon's Modality SDK.
 See the [C sdk](./client-libraries/c/) directly for more
 information.
 
+### Python
+
+A native Python library for read access to trace data stored within modality.
+
+See the [python client library](./client-libraries/python/) directly for more
+informatiom.
+
 ## License
 
 See [LICENSE](./LICENSE) for more details.
