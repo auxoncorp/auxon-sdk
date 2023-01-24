@@ -45,6 +45,7 @@ pub enum error {
     Timeout = -84,
     AttrKeyNaming = -85,
     Io = -86,
+    LoadConfigError = -87,
     // Reserved
     NoBoundTimeline = -100,
 }
@@ -80,6 +81,8 @@ impl From<IngestError> for Error {
             Timeout(_) => Error::Timeout,
             AttrKeyNaming => Error::AttrKeyNaming,
             Io(_) => Error::Io,
+            IngestClientInitializationError(e) => e.into(),
+            LoadConfigError(_) => Error::LoadConfigError
         }
     }
 }
