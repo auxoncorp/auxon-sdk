@@ -7,9 +7,7 @@ use modality_auth_token::{
     decode_auth_token_hex, token_user_file::REFLECTOR_AUTH_TOKEN_DEFAULT_FILE_NAME, AuthToken,
 };
 
-use crate::{try_from_file, Config, ConfigLoadError};
-
-pub const CONFIG_ENV_VAR: &str = "MODALITY_REFLECTOR_CONFIG";
+use crate::{try_from_file, Config, ConfigLoadError, CONFIG_ENV_VAR};
 
 const CONFIG_FILE_NAME: &str = "config.toml";
 const CONFIG_DIR: &str = "modality-reflector";
