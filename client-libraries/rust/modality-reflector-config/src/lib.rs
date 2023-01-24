@@ -508,7 +508,7 @@ mod refined {
                 AttrVal::String(interned_string) => {
                     let mut s = String::new();
                     s.push('\"');
-                    s.push_str(interned_string.as_str());
+                    s.push_str(interned_string.as_ref());
                     s.push('\"');
                     s
                 }

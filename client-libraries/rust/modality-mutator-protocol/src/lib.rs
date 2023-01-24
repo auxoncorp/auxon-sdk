@@ -7,14 +7,11 @@ pub mod params_attributes;
 
 pub mod actuator;
 pub mod attrs;
+#[cfg(feature = "proptest_strategies")]
+pub use modality_api::proptest_strategies;
 #[cfg(feature = "cbor")]
-pub mod cbor;
+pub use modality_api::protocol as cbor;
 pub mod descriptor;
-#[cfg(any(test, feature = "proptest_strategies"))]
-pub mod proptest_strategies;
-
-#[cfg(feature = "serde")]
-mod serde;
 
 pub mod mutator {
     use async_trait::async_trait;

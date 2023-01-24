@@ -1,33 +1,46 @@
-use std::{cmp::Ordering, ops::Deref, str::FromStr};
+use std::{borrow::Cow, cmp::Ordering, ops::Deref, str::FromStr};
 
 use ordered_float::OrderedFloat;
 pub use uuid::Uuid;
 
-/// They key naming an attribute.
-#[derive(Debug, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
-pub struct AttrKey(pub(crate) String);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct AttrKey(Cow<'static, str>);
 
 impl AttrKey {
-    pub fn new(k: String) -> Self {
-        Self(k)
+    pub const fn new(k: String) -> Self {
+        Self(Cow::Owned(k))
+    }
+
+    pub const fn new_static(k: &'static str) -> Self {
+        Self(Cow::Borrowed(k))
+    }
+}
+
+impl From<&str> for AttrKey {
+    fn from(s: &str) -> Self {
+        AttrKey(Cow::from(s.to_owned()))
     }
 }
 
 impl From<String> for AttrKey {
-    fn from(s: String) -> AttrKey {
-        AttrKey(s)
-    }
-}
-
-impl From<AttrKey> for String {
-    fn from(k: AttrKey) -> String {
-        k.0
+    fn from(s: String) -> Self {
+        AttrKey(Cow::from(s))
     }
 }
 
 impl AsRef<str> for AttrKey {
     fn as_ref(&self) -> &str {
-        &self.0
+        self.0.as_ref()
+    }
+}
+
+impl From<AttrKey> for String {
+    fn from(k: AttrKey) -> Self {
+        match k.0 {
+            Cow::Borrowed(b) => b.to_owned(),
+            Cow::Owned(o) => o,
+        }
     }
 }
 
@@ -44,6 +57,7 @@ impl std::fmt::Display for AttrKey {
 /// Newtype wrapper to get correct-by-construction promises
 /// about minimal AttrVal variant selection.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BigInt(Box<i128>);
 
 impl BigInt {
@@ -58,7 +72,7 @@ impl BigInt {
 }
 impl std::fmt::Display for BigInt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.as_ref().fmt(f)
+        self.0.fmt(f)
     }
 }
 
@@ -83,6 +97,8 @@ impl Deref for BigInt {
 /// A timestamp in nanoseconds
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Nanoseconds(u64);
 
 impl Nanoseconds {
@@ -116,6 +132,8 @@ impl FromStr for Nanoseconds {
 
 /// A segmented logical clock
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct LogicalTime(Box<[u64; 4]>);
 
 impl LogicalTime {
@@ -199,9 +217,13 @@ impl FromStr for LogicalTime {
 // TimelineId //
 ////////////////
 
+pub const TIMELINE_ID_SIGIL: char = '%';
+
 /// Timelines are identified by a UUID. These are timeline *instances*; a given location (identified
 /// by its name) is associated with many timelines.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct TimelineId(Uuid);
 
 impl TimelineId {
@@ -230,6 +252,74 @@ impl std::fmt::Display for TimelineId {
     }
 }
 
+/////////////////////
+// EventCoordinate //
+/////////////////////
+
+pub type OpaqueEventId = [u8; 16];
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+pub struct EventCoordinate {
+    pub timeline_id: TimelineId,
+    pub id: OpaqueEventId,
+}
+impl EventCoordinate {
+    pub fn as_bytes(&self) -> [u8; 32] {
+        let mut bytes = [0u8; 32];
+        bytes[0..16].copy_from_slice(self.timeline_id.0.as_bytes());
+        bytes[16..32].copy_from_slice(&self.id);
+        bytes
+    }
+
+    pub fn from_byte_slice(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != 32 {
+            return None;
+        }
+
+        Some(EventCoordinate {
+            timeline_id: Uuid::from_slice(&bytes[0..16]).ok()?.into(),
+            id: bytes[16..32].try_into().ok()?,
+        })
+    }
+}
+
+impl std::fmt::Display for EventCoordinate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{TIMELINE_ID_SIGIL}")?;
+
+        // print the uuid as straight hex, for compactness
+        for byte in self.timeline_id.0.as_bytes() {
+            write!(f, "{byte:02x}")?;
+        }
+
+        write!(f, ":{}", EncodeHexWithoutLeadingZeroes(&self.id))
+    }
+}
+
+pub struct EncodeHexWithoutLeadingZeroes<'a>(pub &'a [u8]);
+
+impl<'a> std::fmt::Display for EncodeHexWithoutLeadingZeroes<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut cursor = 0;
+        let bytes = self.0;
+        while bytes[cursor] == 0 && cursor < bytes.len() - 1 {
+            cursor += 1;
+        }
+
+        if cursor == bytes.len() {
+            write!(f, "0")?;
+        } else {
+            for byte in bytes.iter().skip(cursor) {
+                write!(f, "{byte:02x}")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /////////////
 // AttrVal //
 /////////////
@@ -237,13 +327,66 @@ impl std::fmt::Display for TimelineId {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AttrVal {
     TimelineId(Box<TimelineId>),
-    String(String),
+    EventCoordinate(Box<EventCoordinate>),
+    String(Cow<'static, str>),
     Integer(i64),
     BigInt(BigInt),
     Float(OrderedFloat<f64>),
     Bool(bool),
     Timestamp(Nanoseconds),
     LogicalTime(LogicalTime),
+}
+
+impl AttrVal {
+    pub fn attr_type(&self) -> AttrType {
+        match self {
+            AttrVal::TimelineId(_) => AttrType::TimelineId,
+            AttrVal::EventCoordinate(_) => AttrType::EventCoordinate,
+            AttrVal::String(_) => AttrType::String,
+            AttrVal::Integer(_) => AttrType::Integer,
+            AttrVal::BigInt(_) => AttrType::BigInt,
+            AttrVal::Float(_) => AttrType::Float,
+            AttrVal::Bool(_) => AttrType::Bool,
+            AttrVal::Timestamp(_) => AttrType::Nanoseconds,
+            AttrVal::LogicalTime(_) => AttrType::LogicalTime,
+        }
+    }
+
+    pub fn as_timeline_id(self) -> std::result::Result<TimelineId, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_event_coordinate(self) -> std::result::Result<EventCoordinate, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_string(self) -> std::result::Result<Cow<'static, str>, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_int(self) -> std::result::Result<i64, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_bigint(self) -> std::result::Result<i128, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_float(self) -> std::result::Result<f64, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_bool(self) -> std::result::Result<bool, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_timestamp(self) -> std::result::Result<Nanoseconds, WrongAttrTypeError> {
+        self.try_into()
+    }
+
+    pub fn as_logical_time(self) -> std::result::Result<LogicalTime, WrongAttrTypeError> {
+        self.try_into()
+    }
 }
 
 impl std::fmt::Display for AttrVal {
@@ -256,6 +399,7 @@ impl std::fmt::Display for AttrVal {
             AttrVal::Bool(b) => b.fmt(f),
             AttrVal::Timestamp(ns) => ns.fmt(f),
             AttrVal::LogicalTime(lt) => lt.fmt(f),
+            AttrVal::EventCoordinate(ec) => ec.fmt(f),
             AttrVal::TimelineId(tid) => tid.fmt(f),
         }
     }
@@ -282,38 +426,32 @@ impl FromStr for AttrVal {
         } else {
             // N.B. This will trim any number of leading and trailing single or double quotes, It
             // does not have any ability to escape quote marks.
-            AttrVal::String(s.trim_matches(|c| c == '"' || c == '\'').into())
+            AttrVal::String(s.trim_matches(|c| c == '"' || c == '\'').to_owned().into())
         })
     }
 }
 
 impl From<String> for AttrVal {
     fn from(s: String) -> AttrVal {
-        AttrVal::String(s)
+        AttrVal::String(Cow::Owned(s))
     }
 }
 
 impl From<&str> for AttrVal {
     fn from(s: &str) -> AttrVal {
-        AttrVal::String(s.to_string())
+        AttrVal::String(Cow::Owned(s.to_owned()))
     }
 }
 
-impl From<i64> for AttrVal {
-    fn from(i: i64) -> AttrVal {
-        AttrVal::Integer(i)
+impl From<Cow<'static, str>> for AttrVal {
+    fn from(s: Cow<'static, str>) -> Self {
+        AttrVal::String(s)
     }
 }
 
-impl From<i128> for AttrVal {
-    fn from(i: i128) -> AttrVal {
-        BigInt::new_attr_val(i)
-    }
-}
-
-impl From<f64> for AttrVal {
-    fn from(f: f64) -> AttrVal {
-        AttrVal::Float(f.into())
+impl From<&String> for AttrVal {
+    fn from(s: &String) -> Self {
+        AttrVal::String(Cow::Owned(s.clone()))
     }
 }
 
@@ -339,6 +477,160 @@ impl From<Uuid> for AttrVal {
     fn from(u: Uuid) -> AttrVal {
         AttrVal::TimelineId(Box::new(u.into()))
     }
+}
+
+impl From<EventCoordinate> for AttrVal {
+    fn from(coord: EventCoordinate) -> Self {
+        AttrVal::EventCoordinate(Box::new(coord))
+    }
+}
+
+impl From<TimelineId> for AttrVal {
+    fn from(timeline_id: TimelineId) -> Self {
+        AttrVal::TimelineId(Box::new(timeline_id))
+    }
+}
+
+#[derive(Hash, Eq, PartialEq, Copy, Clone, Debug, PartialOrd, Ord)]
+pub enum AttrType {
+    TimelineId,
+    EventCoordinate,
+    String,
+    Integer,
+    BigInt,
+    Float,
+    Bool,
+    Nanoseconds,
+    LogicalTime,
+    Any,
+}
+
+impl std::fmt::Display for AttrType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AttrType::TimelineId => "TimelineId",
+            AttrType::String => "String",
+            AttrType::Integer => "Integer",
+            AttrType::BigInt => "BigInteger",
+            AttrType::Float => "Float",
+            AttrType::Bool => "Bool",
+            AttrType::Nanoseconds => "Nanoseconds",
+            AttrType::LogicalTime => "LogicalTime",
+            AttrType::Any => "Any",
+            AttrType::EventCoordinate => "Coordinate",
+        }
+        .fmt(f)
+    }
+}
+
+pub mod conversion {
+    use std::convert::TryFrom;
+
+    use super::*;
+
+    macro_rules! impl_from_integer {
+        ($ty:ty) => {
+            impl From<$ty> for AttrVal {
+                fn from(i: $ty) -> Self {
+                    AttrVal::Integer(i as i64)
+                }
+            }
+        };
+    }
+
+    impl_from_integer!(i8);
+    impl_from_integer!(i16);
+    impl_from_integer!(i32);
+    impl_from_integer!(i64);
+    impl_from_integer!(u8);
+    impl_from_integer!(u16);
+    impl_from_integer!(u32);
+
+    macro_rules! impl_from_bigint {
+        ($ty:ty) => {
+            impl From<$ty> for AttrVal {
+                fn from(i: $ty) -> Self {
+                    BigInt::new_attr_val(i as i128)
+                }
+            }
+        };
+    }
+
+    impl_from_bigint!(u64);
+    impl_from_bigint!(i128);
+
+    macro_rules! impl_from_float {
+        ($ty:ty) => {
+            impl From<$ty> for AttrVal {
+                fn from(f: $ty) -> Self {
+                    AttrVal::Float((f as f64).into())
+                }
+            }
+        };
+    }
+
+    impl_from_float!(f32);
+    impl_from_float!(f64);
+
+    macro_rules! impl_try_from_attr_val {
+        ($variant:path, $ty:ty, $expected:path) => {
+            impl TryFrom<AttrVal> for $ty {
+                type Error = WrongAttrTypeError;
+
+                fn try_from(value: AttrVal) -> std::result::Result<Self, Self::Error> {
+                    if let $variant(x) = value {
+                        Ok(x.into())
+                    } else {
+                        Err(WrongAttrTypeError {
+                            actual: value.attr_type(),
+                            expected: $expected,
+                        })
+                    }
+                }
+            }
+        };
+    }
+
+    macro_rules! impl_try_from_attr_val_deref {
+        ($variant:path, $ty:ty, $expected:path) => {
+            impl TryFrom<AttrVal> for $ty {
+                type Error = WrongAttrTypeError;
+
+                fn try_from(value: AttrVal) -> std::result::Result<Self, Self::Error> {
+                    if let $variant(x) = value {
+                        Ok((*x).clone())
+                    } else {
+                        Err(WrongAttrTypeError {
+                            actual: value.attr_type(),
+                            expected: $expected,
+                        })
+                    }
+                }
+            }
+        };
+    }
+
+    impl_try_from_attr_val_deref!(AttrVal::TimelineId, TimelineId, AttrType::TimelineId);
+    impl_try_from_attr_val_deref!(
+        AttrVal::EventCoordinate,
+        EventCoordinate,
+        AttrType::EventCoordinate
+    );
+
+    impl_try_from_attr_val!(AttrVal::Integer, i64, AttrType::Integer);
+    impl_try_from_attr_val!(AttrVal::String, Cow<'static, str>, AttrType::String);
+    impl_try_from_attr_val_deref!(AttrVal::BigInt, i128, AttrType::BigInt);
+    impl_try_from_attr_val!(AttrVal::Float, f64, AttrType::Float);
+    impl_try_from_attr_val!(AttrVal::Bool, bool, AttrType::Bool);
+    impl_try_from_attr_val!(AttrVal::LogicalTime, LogicalTime, AttrType::LogicalTime);
+    impl_try_from_attr_val!(AttrVal::Timestamp, Nanoseconds, AttrType::Nanoseconds);
+}
+
+#[derive(Debug, thiserror::Error, Eq, PartialEq)]
+#[error("Wrong attribute type: expected {expected:?}, found {actual:?}")]
+pub struct WrongAttrTypeError {
+    actual: AttrType,
+    expected: AttrType,
 }
 
 #[cfg(test)]
