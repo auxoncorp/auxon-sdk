@@ -201,6 +201,21 @@ impl IngestClient<UnauthenticatedState> {
         })
     }
 
+    /// Create a new ingest client.
+    pub async fn connect_with_timeout(
+        endpoint: &Url,
+        allow_insecure_tls: bool,
+        timeout: Duration,
+    ) -> Result<IngestClient<UnauthenticatedState>, IngestClientInitializationError> {
+        let connection = IngestConnection::connect(endpoint, allow_insecure_tls).await?;
+        let common = IngestClientCommon::new(timeout, connection);
+
+        Ok(IngestClient {
+            state: UnauthenticatedState {},
+            common,
+        })
+    }
+
     pub async fn authenticate(
         mut self,
         token: Vec<u8>,
@@ -234,12 +249,16 @@ impl IngestClient<UnauthenticatedState> {
 impl IngestClient<ReadyState> {
     /// Create a fully authorized client connection, using the
     /// standard config file location and environment variables.
-    pub async fn connect_with_standard_config() -> Result<IngestClient<ReadyState>, IngestError> {
+    pub async fn connect_with_standard_config(
+        timeout: Duration,
+    ) -> Result<IngestClient<ReadyState>, IngestError> {
         let auth_token = modality_auth_token::AuthToken::load_ingest()?;
 
         // TODO resolve modalityd connection like we do the auth token
         let endpoint = Url::parse("modality-ingest://localhost").unwrap();
-        let client = IngestClient::<UnauthenticatedState>::connect(&endpoint, true).await?;
+        let client =
+            IngestClient::<UnauthenticatedState>::connect_with_timeout(&endpoint, true, timeout)
+                .await?;
 
         client.authenticate(auth_token.into()).await
     }
