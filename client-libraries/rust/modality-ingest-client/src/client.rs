@@ -1,7 +1,6 @@
 use modality_api::types::{AttrKey, AttrVal, TimelineId};
-use modality_auth_token::LoadAuthTokenError;
 use modality_ingest_protocol::{IngestMessage, IngestResponse, InternedAttrKey, PackedAttrKvs};
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use thiserror::Error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -251,14 +250,31 @@ impl IngestClient<ReadyState> {
     /// standard config file location and environment variables.
     pub async fn connect_with_standard_config(
         timeout: Duration,
+        manually_provided_config_path: Option<PathBuf>,
+        manually_provided_auth_token: Option<PathBuf>,
     ) -> Result<IngestClient<ReadyState>, IngestError> {
-        let auth_token = modality_auth_token::AuthToken::load_ingest()?;
+        let (config, auth_token) = modality_reflector_config::resolve::load_config_and_auth_token(
+            manually_provided_config_path,
+            manually_provided_auth_token,
+        )
+        .map_err(IngestError::LoadConfigError)?;
 
-        // TODO resolve modalityd connection like we do the auth token
-        let endpoint = Url::parse("modality-ingest://localhost").unwrap();
-        let client =
-            IngestClient::<UnauthenticatedState>::connect_with_timeout(&endpoint, true, timeout)
-                .await?;
+        let mut endpoint = None;
+        let mut allow_insecure_tls = false;
+        if let Some(ingest) = config.ingest {
+            allow_insecure_tls = ingest.allow_insecure_tls;
+            endpoint = ingest.protocol_parent_url;
+        };
+
+        let endpoint =
+            endpoint.unwrap_or_else(|| Url::parse("modality-ingest://127.0.0.1").unwrap());
+
+        let client = IngestClient::<UnauthenticatedState>::connect_with_timeout(
+            &endpoint,
+            allow_insecure_tls,
+            timeout,
+        )
+        .await?;
 
         client.authenticate(auth_token.into()).await
     }
@@ -442,7 +458,7 @@ pub enum IngestClientInitializationError {
 #[derive(Error)]
 pub enum IngestError {
     #[error(transparent)]
-    LoadAuthTokenError(#[from] LoadAuthTokenError),
+    LoadConfigError(Box<dyn std::error::Error + Send + Sync>),
 
     #[error("Authentication Error: {message:?}")]
     AuthenticationError {
@@ -476,9 +492,7 @@ pub enum IngestError {
 impl std::fmt::Debug for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::LoadAuthTokenError(arg0) => {
-                f.debug_tuple("LoadAuthTokenError").field(arg0).finish()
-            }
+            Self::LoadConfigError(arg0) => f.debug_tuple("LoadConfigError").field(arg0).finish(),
             Self::AuthenticationError { message, .. } => f
                 .debug_struct("AuthenticationError")
                 .field("message", message)

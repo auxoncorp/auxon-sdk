@@ -1,12 +1,12 @@
 #![deny(warnings, clippy::all)]
+pub mod resolve;
+
 use crate::refined::SemanticErrorExplanation;
 pub use refined::*;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 pub use toml::Value as TomlValue;
-
-pub const CONFIG_ENV_VAR: &str = "MODALITY_REFLECTOR_CONFIG";
 
 pub const MODALITY_STORAGE_SERVICE_PORT_DEFAULT: u16 = 14182;
 pub const MODALITY_STORAGE_SERVICE_TLS_PORT_DEFAULT: u16 = 14183;

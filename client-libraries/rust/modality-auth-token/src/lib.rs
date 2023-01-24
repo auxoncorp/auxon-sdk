@@ -12,8 +12,7 @@ use std::{
 };
 use thiserror::Error;
 use token_user_file::{
-    read_user_auth_token_file, TokenUserFileReadError, REFLECTOR_AUTH_TOKEN_DEFAULT_FILE_NAME,
-    USER_AUTH_TOKEN_FILE_NAME,
+    read_user_auth_token_file, TokenUserFileReadError, USER_AUTH_TOKEN_FILE_NAME,
 };
 
 pub mod token_user_file;
@@ -31,41 +30,9 @@ pub struct AuthToken(Vec<u8>);
 
 impl AuthToken {
     /// Load an auth token meant for user-api usage
-    pub fn load_api() -> Result<Self, LoadAuthTokenError> {
+    pub fn load() -> Result<Self, LoadAuthTokenError> {
         if let Ok(s) = std::env::var(MODALITY_AUTH_TOKEN_ENV_VAR) {
             return Ok(AuthTokenHexString(s).try_into()?);
-        }
-
-        let context_dir = Self::context_dir()?;
-        let user_auth_token_path = context_dir.join(USER_AUTH_TOKEN_FILE_NAME);
-        if user_auth_token_path.exists() {
-            if let Some(file_contents) = read_user_auth_token_file(&user_auth_token_path)? {
-                return Ok(file_contents.auth_token);
-            } else {
-                return Err(LoadAuthTokenError::NoTokenInFile(
-                    user_auth_token_path.to_owned(),
-                ));
-            }
-        }
-
-        Err(LoadAuthTokenError::NoAuthToken)
-    }
-
-    /// Load an auth token meant for ingest usage
-    pub fn load_ingest() -> Result<Self, LoadAuthTokenError> {
-        if let Ok(s) = std::env::var(MODALITY_AUTH_TOKEN_ENV_VAR) {
-            return Ok(AuthTokenHexString(s).try_into()?);
-        }
-
-        let reflector_auth_token_path = Path::new(REFLECTOR_AUTH_TOKEN_DEFAULT_FILE_NAME);
-        if reflector_auth_token_path.exists() {
-            if let Some(file_contents) = read_user_auth_token_file(&reflector_auth_token_path)? {
-                return Ok(file_contents.auth_token);
-            } else {
-                return Err(LoadAuthTokenError::NoTokenInFile(
-                    reflector_auth_token_path.to_owned(),
-                ));
-            }
         }
 
         let context_dir = Self::context_dir()?;

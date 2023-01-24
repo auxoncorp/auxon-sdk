@@ -8,16 +8,18 @@ description = "A client library for the modality ingest plane protocol."
 homepage = "https://auxon.io/"
 
 [dependencies]
-minicbor = { version = "0.13.1", features = ["std", "derive"] }
-modality-auth-token = { version = "0.1", path = "../modality-auth-token" }
-modality-api = { version = "0.1", path = "../modality-api" }
-modality-ingest-protocol = { version = "0.1", path = "../modality-ingest-protocol" }
-native-tls = "0.2.10"
-ordered-float = "2.2.0"
-thiserror = "1"
-tokio = { version = "1", features = ["net", "time", "io-util"] }
-tokio-native-tls = "0.3.0"
-tracing = "0.1"
-url = { version = "2.1" }
-uuid = { version = "1.0", features = ["v4"] }
+modality-auth-token = { workspace = true }
+modality-api = { workspace = true }
+modality-ingest-protocol = { workspace = true }
+modality-reflector-config = { workspace = true }
+
+minicbor = { workspace = true, features = ["std", "derive"] }
+native-tls = { workspace = true }
+ordered-float = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["net", "time", "io-util", "fs"] }
+tokio-native-tls = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
