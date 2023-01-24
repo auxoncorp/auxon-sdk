@@ -9,8 +9,29 @@ fn main() {
     let out_dir = env::var(CAPI_OUT_DIR_ENV_VAR)
         .or_else(|_| env::var("OUT_DIR"))
         .expect("Failed to determine output artifact directory");
+
     let include_dir = Path::new(&out_dir).join("include").join("modality");
     fs::create_dir_all(&include_dir).unwrap();
+
+    // Generate packaging helpers
+    let version_major = env::var("CARGO_PKG_VERSION_MAJOR").unwrap();
+    let deb_dir = Path::new(&out_dir).join("package");
+    fs::create_dir_all(&deb_dir).unwrap();
+    fs::write(
+        deb_dir.join("provides"),
+        format!("libmodality{version_major}"),
+    )
+    .unwrap();
+    fs::write(
+        deb_dir.join("soname"),
+        format!("libmodality.so.{version_major}"),
+    )
+    .unwrap();
+    fs::write(
+        deb_dir.join("shlibs"),
+        format!("libmodality {version_major} libmodality{version_major}"),
+    )
+    .unwrap();
 
     let common_cfg = Config {
         braces: Braces::NextLine,
