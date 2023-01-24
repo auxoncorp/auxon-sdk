@@ -9,6 +9,7 @@ homepage = "https://auxon.io/"
 
 [dependencies]
 minicbor = { version = "0.13.1", features = ["std", "derive"] }
+modality-auth-token = { version = "0.1", path = "../modality-auth-token" }
 modality-api = { version = "0.1", path = "../modality-api" }
 modality-ingest-protocol = { version = "0.1", path = "../modality-ingest-protocol" }
 native-tls = "0.2.10"
@@ -16,5 +17,7 @@ ordered-float = "2.2.0"
 thiserror = "1"
 tokio = { version = "1", features = ["net", "time", "io-util"] }
 tokio-native-tls = "0.3.0"
+tracing = "0.1"
 url = { version = "2.1" }
 uuid = { version = "1.0", features = ["v4"] }
+

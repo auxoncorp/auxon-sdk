@@ -11,6 +11,7 @@ use std::path::Path;
 /// A UTF8 file. The first line contains the auth token hex string representation and a line break.
 /// All (optional) subsequent content represents the user identity
 pub const USER_AUTH_TOKEN_FILE_NAME: &str = ".user_auth_token";
+
 /// A UTF8 file. The first line contains the auth token hex string representation and a line break.
 /// All (optional) subsequent content represents the authorizing user identity
 pub const REFLECTOR_AUTH_TOKEN_DEFAULT_FILE_NAME: &str = ".modality-reflector-auth-token";
