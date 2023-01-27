@@ -65,7 +65,7 @@ pub mod owned {
                 mutator_level_custom_metadata_prefix.push('.');
                 for (k, v) in organization_custom_metadata.attributes.iter() {
                     all_mutator_attrs.push((
-                        AttrKey::from(format!("{mutator_level_custom_metadata_prefix}{}", k)),
+                        AttrKey::from(format!("{mutator_level_custom_metadata_prefix}{k}")),
                         v.clone(),
                     ));
                 }
@@ -204,7 +204,7 @@ pub mod owned {
                 mutator_level_custom_metadata_prefix.push('.');
                 for (k, v) in organization_custom_metadata.attributes.iter() {
                     all_mutator_attrs.push((
-                        AttrKey::from(format!("{mutator_level_custom_metadata_prefix}{}", k)),
+                        AttrKey::from(format!("{mutator_level_custom_metadata_prefix}{k}")),
                         v.clone(),
                     ));
                 }
@@ -446,7 +446,7 @@ pub mod owned {
                 parameter_level_custom_metadata_prefix.push('.');
                 for (k, v) in organization_custom_metadata.attributes.iter() {
                     param_attrs.push((
-                        AttrKey::from(format!("{parameter_level_custom_metadata_prefix}{}", k)),
+                        AttrKey::from(format!("{parameter_level_custom_metadata_prefix}{k}")),
                         v.clone(),
                     ));
                 }
@@ -476,7 +476,7 @@ pub mod owned {
             // TODO, later
             let organization_custom_metadata: Option<OrganizationCustomMetadata> = None;
 
-            let params_prefix = format!("mutator.params.{}", param_key);
+            let params_prefix = format!("mutator.params.{param_key}");
             for (k, v) in attributes {
                 if let Some(post_key_with_period) = k.as_ref().strip_prefix(&params_prefix) {
                     if post_key_with_period == MUTATOR_PARAMS_NAME_SUFFIX {

@@ -267,7 +267,7 @@ where
 
 pub(crate) fn error_print(err: &dyn std::error::Error) {
     fn print_err_node(err: &dyn std::error::Error) {
-        eprintln!("{}", err);
+        eprintln!("{err}");
     }
 
     print_err_node(err);
