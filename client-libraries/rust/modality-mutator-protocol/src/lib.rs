@@ -154,7 +154,7 @@ mod tests {
                     name = "modality.mutation.injected",
                     "Expected an integer-type parameter",
                 );
-                panic!("Unexpected param of value {:?}", v);
+                panic!("Unexpected param of value {v:?}");
             }
             Ok(())
         }

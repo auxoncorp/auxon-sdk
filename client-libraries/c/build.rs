@@ -60,7 +60,7 @@ fn main() {
     cdylib_link_lines::metabuild();
     std::env::set_var("CARGO_PKG_NAME", env!("CARGO_PKG_NAME"));
 
-    println!("cargo:rerun-if-env-changed={}", CAPI_OUT_DIR_ENV_VAR);
+    println!("cargo:rerun-if-env-changed={CAPI_OUT_DIR_ENV_VAR}");
 }
 
 fn generate_c_headers(common_cfg: &Config, include_dir: &Path) {
