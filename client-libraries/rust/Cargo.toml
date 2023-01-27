@@ -42,7 +42,7 @@ thiserror = "1"
 tokio = { version = "1" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"] }
-utoipa = { version = "2.4", features = ["uuid", "axum_extras"] }
+utoipa = { version = "3.0", features = ["uuid", "axum_extras"] }
 utoipa-swagger-ui = { version = "3.0", features = ["axum"] }
 url = { version = "2.1", features = ["serde"] }
 uuid = { version = "1", default-features = false, features = ["std", "v4", "v5", "serde"] }
