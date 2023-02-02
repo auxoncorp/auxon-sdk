@@ -1,6 +1,6 @@
 use modality_api::types::{AttrKey, AttrVal, TimelineId};
 use modality_ingest_protocol::{IngestMessage, IngestResponse, InternedAttrKey, PackedAttrKvs};
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use thiserror::Error;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -200,6 +200,21 @@ impl IngestClient<UnauthenticatedState> {
         })
     }
 
+    /// Create a new ingest client.
+    pub async fn connect_with_timeout(
+        endpoint: &Url,
+        allow_insecure_tls: bool,
+        timeout: Duration,
+    ) -> Result<IngestClient<UnauthenticatedState>, IngestClientInitializationError> {
+        let connection = IngestConnection::connect(endpoint, allow_insecure_tls).await?;
+        let common = IngestClientCommon::new(timeout, connection);
+
+        Ok(IngestClient {
+            state: UnauthenticatedState {},
+            common,
+        })
+    }
+
     pub async fn authenticate(
         mut self,
         token: Vec<u8>,
@@ -231,6 +246,39 @@ impl IngestClient<UnauthenticatedState> {
 }
 
 impl IngestClient<ReadyState> {
+    /// Create a fully authorized client connection, using the
+    /// standard config file location and environment variables.
+    pub async fn connect_with_standard_config(
+        timeout: Duration,
+        manually_provided_config_path: Option<PathBuf>,
+        manually_provided_auth_token: Option<PathBuf>,
+    ) -> Result<IngestClient<ReadyState>, IngestError> {
+        let (config, auth_token) = modality_reflector_config::resolve::load_config_and_auth_token(
+            manually_provided_config_path,
+            manually_provided_auth_token,
+        )
+        .map_err(IngestError::LoadConfigError)?;
+
+        let mut endpoint = None;
+        let mut allow_insecure_tls = false;
+        if let Some(ingest) = config.ingest {
+            allow_insecure_tls = ingest.allow_insecure_tls;
+            endpoint = ingest.protocol_parent_url;
+        };
+
+        let endpoint =
+            endpoint.unwrap_or_else(|| Url::parse("modality-ingest://127.0.0.1").unwrap());
+
+        let client = IngestClient::<UnauthenticatedState>::connect_with_timeout(
+            &endpoint,
+            allow_insecure_tls,
+            timeout,
+        )
+        .await?;
+
+        client.authenticate(auth_token.into()).await
+    }
+
     pub async fn open_timeline(
         mut self,
         id: TimelineId,
@@ -409,6 +457,9 @@ pub enum IngestClientInitializationError {
 
 #[derive(Error)]
 pub enum IngestError {
+    #[error(transparent)]
+    LoadConfigError(Box<dyn std::error::Error + Send + Sync>),
+
     #[error("Authentication Error: {message:?}")]
     AuthenticationError {
         message: Option<String>,
@@ -430,6 +481,9 @@ pub enum IngestError {
     #[error("Event attr keys must begin with 'event.', and timeline attr keys must begin with 'timeline.'")]
     AttrKeyNaming,
 
+    #[error(transparent)]
+    IngestClientInitializationError(#[from] IngestClientInitializationError),
+
     #[error("IO")]
     Io(#[from] std::io::Error),
 }
@@ -438,16 +492,21 @@ pub enum IngestError {
 impl std::fmt::Debug for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::LoadConfigError(arg0) => f.debug_tuple("LoadConfigError").field(arg0).finish(),
             Self::AuthenticationError { message, .. } => f
                 .debug_struct("AuthenticationError")
                 .field("message", message)
                 .finish(),
-            Self::ProtocolError(e) => f.debug_tuple("ProtocolError").field(e).finish(),
-            Self::CborEncode(e) => f.debug_tuple("CborEncode").field(e).finish(),
-            Self::CborDecode(e) => f.debug_tuple("CborDecode").field(e).finish(),
-            Self::Timeout(e) => f.debug_tuple("Timeout").field(e).finish(),
-            Self::AttrKeyNaming => f.debug_tuple("AttrKeyNaming").finish(),
-            Self::Io(e) => f.debug_tuple("Io").field(e).finish(),
+            Self::ProtocolError(arg0) => f.debug_tuple("ProtocolError").field(arg0).finish(),
+            Self::CborEncode(arg0) => f.debug_tuple("CborEncode").field(arg0).finish(),
+            Self::CborDecode(arg0) => f.debug_tuple("CborDecode").field(arg0).finish(),
+            Self::Timeout(arg0) => f.debug_tuple("Timeout").field(arg0).finish(),
+            Self::AttrKeyNaming => write!(f, "AttrKeyNaming"),
+            Self::IngestClientInitializationError(arg0) => f
+                .debug_tuple("IngestClientInitializationError")
+                .field(arg0)
+                .finish(),
+            Self::Io(arg0) => f.debug_tuple("Io").field(arg0).finish(),
         }
     }
 }

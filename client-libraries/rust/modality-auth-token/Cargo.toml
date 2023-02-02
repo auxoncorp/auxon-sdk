@@ -14,6 +14,7 @@ test_support = ["proptest"]
 [dependencies]
 hex = { workspace = true }
 thiserror = { workspace = true }
+dirs = { workspace = true }
 
 proptest = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }

@@ -1,4 +1,6 @@
 #![deny(warnings, clippy::all)]
+pub mod resolve;
+
 use crate::refined::SemanticErrorExplanation;
 pub use refined::*;
 use std::collections::BTreeMap;

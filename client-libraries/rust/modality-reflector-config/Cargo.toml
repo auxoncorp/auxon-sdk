@@ -12,13 +12,16 @@ description = """
 homepage = "https://auxon.io/"
 
 [dependencies]
-modality-api = { version = "0.1", path = "../modality-api", default-features = false }
-serde = { version = "1.0", features=["derive"] }
-thiserror = "1.0.30"
-toml = "0.5"
-url = { version = "2.1" }
-regex = "1.6"
-lazy_static = "1.4"
+modality-api = { workspace = true }
+modality-auth-token = { workspace = true }
+serde = { workspace = true, features=["derive"] }
+thiserror = { workspace = true }
+toml = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true, features=[] }
+regex = { workspace = true }
+lazy_static = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.1.0"
