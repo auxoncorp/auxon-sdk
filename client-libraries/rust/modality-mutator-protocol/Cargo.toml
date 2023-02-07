@@ -13,6 +13,7 @@ cbor = ["dep:minicbor"]
 proptest_strategies = ["dep:proptest"]
 serde = ["dep:serde", "uuid/serde"]
 schemars = ["dep:schemars"]
+utoipa = ["dep:utoipa"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -23,6 +24,8 @@ minicbor = { workspace = true, optional = true }
 proptest = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
+
+utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest = { workspace = true }

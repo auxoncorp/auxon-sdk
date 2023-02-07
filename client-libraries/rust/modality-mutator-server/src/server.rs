@@ -55,12 +55,15 @@ pub async fn serve_mutators_on_listener(
 }
 
 fn swagger_routes() -> Router {
-    use crate::{Mutation, Mutator};
+    use crate::{AttrVal, Mutation, Mutator};
+    use modality_mutator_protocol::attrs::{
+        BigInt, EventCoordinate, LogicalTime, Nanoseconds, TimelineId,
+    };
     #[derive(OpenApi)]
     #[openapi(
         paths(mutator::list_mutators, mutator::create_mutation, mutator::delete_mutations),
-        components(schemas(Mutator, Mutation)),
-        modifiers(&SecurityAddon),
+        components(schemas(Mutator, Mutation, AttrVal, BigInt, LogicalTime, TimelineId, EventCoordinate, Nanoseconds)),
+        modifiers(&SecurityAddon, &OpaqueEventIdSchemaAddon),
         tags(
             (name = "mutator", description = "Mutator API")
         )
@@ -77,6 +80,32 @@ fn swagger_routes() -> Router {
                         MUTATOR_API_KEY_HEADER,
                     ))),
                 )
+            }
+        }
+    }
+    struct OpaqueEventIdSchemaAddon;
+    impl Modify for OpaqueEventIdSchemaAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            use utoipa::openapi::schema::{ArrayBuilder, Object, RefOr, Schema, SchemaType};
+            use utoipa::openapi::{KnownFormat, SchemaFormat};
+            if let Some(components) = openapi.components.as_mut() {
+                components
+                    .schemas
+                    .entry("OpaqueEventId".to_string())
+                    .or_insert_with(|| {
+                        RefOr::T(Schema::Array(
+                            ArrayBuilder::new()
+                                .max_items(Some(16))
+                                .min_items(Some(16))
+                                .items(RefOr::T(Schema::Object({
+                                    let mut oct = Object::with_type(SchemaType::Integer);
+                                    oct.format =
+                                        Some(SchemaFormat::KnownFormat(KnownFormat::Binary));
+                                    oct
+                                })))
+                                .build(),
+                        ))
+                    });
             }
         }
     }

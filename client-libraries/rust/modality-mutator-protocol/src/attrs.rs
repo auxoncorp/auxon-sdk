@@ -49,6 +49,7 @@ pub mod mutator {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum AttrVal {
     TimelineId(Box<TimelineId>),
     EventCoordinate(Box<EventCoordinate>),
@@ -116,6 +117,7 @@ impl AttrVal {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct TimelineId(pub Uuid);
 
 impl From<Uuid> for TimelineId {
@@ -127,6 +129,7 @@ impl From<Uuid> for TimelineId {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct EventCoordinate {
     pub timeline_id: TimelineId,
     pub id: OpaqueEventId,
@@ -154,6 +157,7 @@ impl EventCoordinate {
 pub type OpaqueEventId = [u8; 16];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct BigInt(pub Box<i128>);
 
 impl BigInt {
@@ -190,6 +194,7 @@ impl Deref for BigInt {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct Nanoseconds(pub u64);
 
 impl From<u64> for Nanoseconds {
@@ -397,6 +402,7 @@ pub struct WrongAttrTypeError {
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct LogicalTime(Box<[u64; 4]>);
 
 impl LogicalTime {
