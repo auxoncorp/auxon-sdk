@@ -1,14 +1,25 @@
 use cbindgen::{
-    Braces, Config, DocumentationStyle, EnumConfig, ExportConfig, Language, RenameRule,
+    Braces, Config, CythonConfig, DocumentationStyle, EnumConfig, ExportConfig, Language,
+    RenameRule,
 };
-use std::{env, fs, path::Path};
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 const CAPI_OUT_DIR_ENV_VAR: &str = "MODALITY_SDK_CAPI_OUT_DIR";
+const CYTHON_OUT_DIR_ENV_VAR: &str = "MODALITY_SDK_CYTHON_OUT_DIR";
 
 fn main() {
     let out_dir = env::var(CAPI_OUT_DIR_ENV_VAR)
         .or_else(|_| env::var("OUT_DIR"))
         .expect("Failed to determine output artifact directory");
+
+    let cython_dir = env::var(CYTHON_OUT_DIR_ENV_VAR)
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| Path::new(&out_dir).join("cython"));
+    fs::create_dir_all(&cython_dir).unwrap();
 
     let include_dir = Path::new(&out_dir).join("include").join("modality");
     fs::create_dir_all(&include_dir).unwrap();
@@ -54,6 +65,7 @@ fn main() {
 
     generate_c_headers(&common_cfg, &include_dir);
     generate_cpp_headers(&common_cfg, &include_dir);
+    generate_cython_bindings(&common_cfg, &cython_dir);
 
     // So we can get a valid SONAME without changing the package name
     std::env::set_var("CARGO_PKG_NAME", "modality");
@@ -61,6 +73,7 @@ fn main() {
     std::env::set_var("CARGO_PKG_NAME", env!("CARGO_PKG_NAME"));
 
     println!("cargo:rerun-if-env-changed={CAPI_OUT_DIR_ENV_VAR}");
+    println!("cargo:rerun-if-env-changed={CYTHON_OUT_DIR_ENV_VAR}");
 }
 
 fn generate_c_headers(common_cfg: &Config, include_dir: &Path) {
@@ -215,4 +228,39 @@ fn generate_cpp_headers(common_cfg: &Config, include_dir: &Path) {
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(include_dir.join("mutator_http_server.hpp"));
+}
+
+fn generate_cython_bindings(common_cfg: &Config, out_dir: &Path) {
+    let pyx_path = out_dir.join("modality.pyx");
+    let wrapper_path = Path::new("cython").join("wrapper.pyx");
+    let mut cfg = common_cfg.clone();
+
+    cfg.language = Language::Cython;
+    cfg.namespace = Some("modality".to_string());
+    cfg.no_includes = false;
+    cfg.header = Some("# This file is generated automatically, do not modify.".to_string());
+    cfg.cython = CythonConfig {
+        header: Some("'modality_cython_includes.h'".to_owned()),
+        ..Default::default()
+    };
+
+    cbindgen::Builder::new()
+        .with_config(cfg)
+        .with_src("src/error.rs")
+        .with_src("src/tracing.rs")
+        .with_src("src/rt.rs")
+        .with_src("src/types.rs")
+        .with_src("src/ingest/client.rs")
+        .with_src("src/mutation/interface.rs")
+        .with_src("src/mutation/http_server.rs")
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file(&pyx_path);
+
+    let mut f = fs::OpenOptions::new().append(true).open(pyx_path).unwrap();
+    f.write_all(fs::read_to_string(&wrapper_path).unwrap().as_bytes())
+        .unwrap();
+
+    println!("cargo:rerun-if-changed={}", wrapper_path.display());
+    println!("cargo:rerun-if-changed=setup.py");
 }

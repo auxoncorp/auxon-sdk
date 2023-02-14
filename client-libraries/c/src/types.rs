@@ -1,8 +1,9 @@
 use crate::{capi_result, Error, NullPtrExt};
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int, CStr, CString};
 use uuid::Uuid;
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct timeline_id([u8; 16]);
 
 impl From<&timeline_id> for modality_api::TimelineId {
@@ -28,6 +29,7 @@ pub extern "C" fn modality_timeline_id_init(tid: *mut timeline_id) -> c_int {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct big_int([u8; 16]);
 
 impl big_int {
@@ -82,6 +84,7 @@ pub extern "C" fn modality_big_int_set(bi: *mut big_int, lower: u64, upper: u64)
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct logical_time([u64; 4]);
 
 impl logical_time {
@@ -240,6 +243,20 @@ pub extern "C" fn modality_attr_val_set_timeline_id(
 }
 
 #[no_mangle]
+pub extern "C" fn modality_attr_val_copy_timeline_id(
+    attr: *mut attr_val,
+    val: *const timeline_id,
+) -> c_int {
+    capi_result(|| unsafe {
+        let attr = attr.as_mut().ok_or(Error::NullPointer)?;
+        let val = val.as_ref().ok_or(Error::NullPointer)?;
+        let ptr = Box::into_raw(Box::new(val.clone()));
+        *attr = attr_val::TimelineId(ptr);
+        Ok(())
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn modality_attr_val_set_string(attr: *mut attr_val, val: *const c_char) -> c_int {
     capi_result(|| unsafe {
         let attr = attr.as_mut().ok_or(Error::NullPointer)?;
@@ -248,6 +265,20 @@ pub extern "C" fn modality_attr_val_set_string(attr: *mut attr_val, val: *const 
             .to_str()
             .map_err(|_| Error::InvalidUtf8)?;
         *attr = attr_val::String(val);
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn modality_attr_val_copy_string(attr: *mut attr_val, val: *const c_char) -> c_int {
+    capi_result(|| unsafe {
+        let attr = attr.as_mut().ok_or(Error::NullPointer)?;
+        val.null_check()?;
+        let valid_str = CStr::from_ptr(val)
+            .to_str()
+            .map_err(|_| Error::InvalidUtf8)?;
+        let allocd_copy = CString::new(valid_str).map_err(|_| Error::NullPointer)?;
+        *attr = attr_val::String(allocd_copy.into_raw());
         Ok(())
     })
 }
@@ -267,6 +298,20 @@ pub extern "C" fn modality_attr_val_set_big_int(attr: *mut attr_val, val: *const
         let attr = attr.as_mut().ok_or(Error::NullPointer)?;
         val.null_check()?;
         *attr = attr_val::BigInt(val);
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn modality_attr_val_copy_big_int(
+    attr: *mut attr_val,
+    val: *const big_int,
+) -> c_int {
+    capi_result(|| unsafe {
+        let attr = attr.as_mut().ok_or(Error::NullPointer)?;
+        let val = val.as_ref().ok_or(Error::NullPointer)?;
+        let ptr = Box::into_raw(Box::new(val.clone()));
+        *attr = attr_val::BigInt(ptr);
         Ok(())
     })
 }
@@ -307,6 +352,45 @@ pub extern "C" fn modality_attr_val_set_logical_time(
         let attr = attr.as_mut().ok_or(Error::NullPointer)?;
         val.null_check()?;
         *attr = attr_val::LogicalTime(val);
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn modality_attr_val_copy_logical_time(
+    attr: *mut attr_val,
+    val: *const logical_time,
+) -> c_int {
+    capi_result(|| unsafe {
+        let attr = attr.as_mut().ok_or(Error::NullPointer)?;
+        let val = val.as_ref().ok_or(Error::NullPointer)?;
+        let ptr = Box::into_raw(Box::new(val.clone()));
+        *attr = attr_val::LogicalTime(ptr);
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn modality_attr_val_free_copy(attr: *mut attr_val) -> c_int {
+    capi_result(|| unsafe {
+        use attr_val::*;
+        let attr = attr.as_mut().ok_or(Error::NullPointer)?;
+        match attr {
+            TimelineId(tid) => {
+                let _t = Box::from_raw(*tid as *mut timeline_id);
+            }
+            String(s) => {
+                let _cstr = CString::from_raw(*s as *mut _);
+            }
+            LogicalTime(lt) => {
+                let _t = Box::from_raw(*lt as *mut logical_time);
+            }
+            BigInt(bi) => {
+                let _t = Box::from_raw(*bi as *mut big_int);
+            }
+            // The rest are owned variants
+            Integer(_) | Float(_) | Bool(_) | Timestamp(_) => (),
+        }
         Ok(())
     })
 }

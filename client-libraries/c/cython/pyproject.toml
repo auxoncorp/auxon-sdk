@@ -1,0 +1,11 @@
+[project]
+name = "modality-sdk"
+version = "0.1"
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "cython",
+]
+build-backend = "setuptools.build_meta"
