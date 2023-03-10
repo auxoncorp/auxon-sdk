@@ -234,7 +234,7 @@ impl std::fmt::Display for TimelineId {
 // AttrVal //
 /////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AttrVal {
     TimelineId(Box<TimelineId>),
     String(String),
