@@ -1,13 +1,15 @@
 # The Modality SDK
 
-This is Auxon's Modality SDK; a collection of clients, servers,
-protocols, and general API types for interacting with the APIs that are
-used throughout Auxon's Modality suite of tools.
+A collection of clients, servers, protocols, and general API types for
+interacting with the APIs that are used throughout Auxon's Modality
+suite of tools.
 
+You can find more information about the entities and concepts referenced
+in this SDK in the [documentation.](https://docs.auxon.io/modality/)
 
 ## Implementations
 
-The current publicly available SDK implementations are:
+SDK implementations currently exist for the following languages:
 
 ### Rust
 
@@ -28,8 +30,8 @@ information.
 
 A native Python library for read access to trace data stored within modality.
 
-See the [python client library](./client-libraries/python/) directly for more
-informatiom.
+See the [Python client library](./client-libraries/python/) directly for more
+information.
 
 ## License
 
