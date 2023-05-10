@@ -1,7 +1,7 @@
 use crate::{attr_val, capi_result, runtime, timeline_id, Error, NullPtrExt};
 use modality_ingest_client::{dynamic::DynamicIngestClient, IngestClient, UnauthenticatedState};
 use std::ffi::{c_char, c_int, CStr};
-use std::{mem, slice};
+use std::{mem, slice, time::Duration};
 use tokio::runtime::Runtime;
 use url::Url;
 
@@ -106,21 +106,56 @@ pub extern "C" fn modality_ingest_client_connect(
     allow_insecure_tls: c_int,
 ) -> c_int {
     capi_result(|| unsafe {
-        endpoint_url.null_check()?;
-        let c = client.as_mut().ok_or(Error::NullPointer)?;
-        if !c.state.is_init() {
-            Err(Error::ClientAlreadyConnected)
-        } else {
-            let url_str = CStr::from_ptr(endpoint_url)
-                .to_str()
-                .map_err(|_| Error::InvalidUtf8)?;
-            let url = Url::parse(url_str).map_err(|_| Error::InvalidUrl)?;
-            let connected_client =
-                c.rt.block_on(IngestClient::connect(&url, allow_insecure_tls != 0))?;
-            let _ = mem::replace(&mut c.state, InnerState::Connected(connected_client));
-            Ok(())
-        }
+        internal_client_connect(client, endpoint_url, allow_insecure_tls, None)
     })
+}
+
+#[no_mangle]
+pub extern "C" fn modality_ingest_client_connect_with_timeout(
+    client: *mut ingest_client,
+    endpoint_url: *const c_char,
+    allow_insecure_tls: c_int,
+    timeout_seconds: u64,
+) -> c_int {
+    capi_result(|| unsafe {
+        internal_client_connect(
+            client,
+            endpoint_url,
+            allow_insecure_tls,
+            timeout_seconds.into(),
+        )
+    })
+}
+
+unsafe fn internal_client_connect(
+    client: *mut ingest_client,
+    endpoint_url: *const c_char,
+    allow_insecure_tls: c_int,
+    timeout_seconds: Option<u64>,
+) -> Result<(), Error> {
+    endpoint_url.null_check()?;
+    let c = client.as_mut().ok_or(Error::NullPointer)?;
+    if !c.state.is_init() {
+        Err(Error::ClientAlreadyConnected)
+    } else {
+        let url_str = CStr::from_ptr(endpoint_url)
+            .to_str()
+            .map_err(|_| Error::InvalidUtf8)?;
+        let url = Url::parse(url_str).map_err(|_| Error::InvalidUrl)?;
+        let connected_client = match timeout_seconds {
+            Some(to_sec) => c.rt.block_on(IngestClient::connect_with_timeout(
+                &url,
+                allow_insecure_tls != 0,
+                Duration::from_secs(to_sec),
+            ))?,
+
+            None => {
+                c.rt.block_on(IngestClient::connect(&url, allow_insecure_tls != 0))?
+            }
+        };
+        let _ = mem::replace(&mut c.state, InnerState::Connected(connected_client));
+        Ok(())
+    }
 }
 
 #[no_mangle]

@@ -99,11 +99,12 @@ cdef class IngestClient:
         modality_ingest_client_free(self.ic)
         modality_runtime_free(self.rt)
 
-    def connect(self, url='modality-ingest://localhost:14182', allow_insecure_tls=True):
-        if modality_ingest_client_connect(
+    def connect(self, url='modality-ingest://localhost:14182', allow_insecure_tls=True, timeout_seconds=1):
+        if modality_ingest_client_connect_with_timeout(
                 self.ic,
                 bytes(url, encoding='utf8'),
-                allow_insecure_tls) != 0:
+                allow_insecure_tls,
+                timeout_seconds) != 0:
             raise ValueError
 
     def authenticate(self, auth_token=None):
