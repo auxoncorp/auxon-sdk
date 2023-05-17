@@ -1,4 +1,5 @@
 import os
+import ctypes
 from libc.stdlib cimport malloc, free
 
 cdef class TimelineId:
@@ -29,6 +30,18 @@ cdef class AttrVal:
         if modality_attr_val_free_copy(&self.inner) != 0:
             raise ValueError
         if modality_attr_val_copy_string(&self.inner, bytes(val, encoding='utf8')) != 0:
+            raise ValueError
+
+    def set_float(self, val: float):
+        if modality_attr_val_free_copy(&self.inner) != 0:
+            raise ValueError
+        if modality_attr_val_set_float(&self.inner, ctypes.c_double(val).value) != 0:
+            raise ValueError
+
+    def set_timestamp(self, val: int):
+        if modality_attr_val_free_copy(&self.inner) != 0:
+            raise ValueError
+        if modality_attr_val_set_timestamp(&self.inner, ctypes.c_uint64(val).value) != 0:
             raise ValueError
 
 cdef class Attr:
