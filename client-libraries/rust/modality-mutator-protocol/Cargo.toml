@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
-description = "The protocol definition of the Modality mutation plane."
+description = "The protocol definition of the Modality mutation plane mutator."
 homepage = "https://auxon.io/"
 
 [features]

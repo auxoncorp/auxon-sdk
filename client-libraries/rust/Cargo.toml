@@ -7,6 +7,7 @@ members = [
     "modality-ingest-protocol",
     "modality-mutator-protocol",
     "modality-mutator-server",
+    "modality-mutation-plane",
     "modality-plugin-utils",
     "modality-reflector-config",
 ]
