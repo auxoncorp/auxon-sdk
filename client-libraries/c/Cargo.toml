@@ -25,7 +25,7 @@ modality-mutator-protocol = { path = "../rust/modality-mutator-protocol" }
 modality-mutator-server = { path = "../rust/modality-mutator-server", features = ["server"] }
 modality-mutation-plane = { path = "../rust/modality-mutation-plane" }
 modality-mutation-plane-client = { path = "../rust/modality-mutation-plane-client" }
-tokio = { version = "1", features = ["rt-multi-thread", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "time", "macros", "signal"] }
 async-trait = "0.1"
 url = { version = "2.1" }
 uuid = { version = "1.0", features = ["v4"] }
