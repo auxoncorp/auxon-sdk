@@ -130,7 +130,7 @@ fn generate_c_headers(common_cfg: &Config, include_dir: &Path) {
         .write_to_file(include_dir.join("mutator_interface.h"));
 
     cbindgen::Builder::new()
-        .with_config(cfg)
+        .with_config(cfg.clone())
         .with_sys_include("stdint.h")
         .with_sys_include("stdbool.h")
         .with_include("modality/types.h")
@@ -141,6 +141,19 @@ fn generate_c_headers(common_cfg: &Config, include_dir: &Path) {
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(include_dir.join("mutator_http_server.h"));
+
+    cbindgen::Builder::new()
+        .with_config(cfg)
+        .with_sys_include("stdint.h")
+        .with_sys_include("stdbool.h")
+        .with_include("modality/types.h")
+        .with_include("modality/runtime.h")
+        .with_include("modality/mutator_interface.h")
+        .with_include_guard("MODALITY_MUTATION_CLIENT_H")
+        .with_src("src/mutation/client.rs")
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file(include_dir.join("mutation_client.h"));
 }
 
 fn generate_cpp_headers(common_cfg: &Config, include_dir: &Path) {
@@ -206,7 +219,7 @@ fn generate_cpp_headers(common_cfg: &Config, include_dir: &Path) {
         .write_to_file(include_dir.join("mutator_interface.hpp"));
 
     cbindgen::Builder::new()
-        .with_config(cfg)
+        .with_config(cfg.clone())
         .with_include("modality/types.hpp")
         .with_include("modality/runtime.hpp")
         .with_include("modality/mutator_interface.hpp")
@@ -215,4 +228,15 @@ fn generate_cpp_headers(common_cfg: &Config, include_dir: &Path) {
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(include_dir.join("mutator_http_server.hpp"));
+
+    cbindgen::Builder::new()
+        .with_config(cfg)
+        .with_include("modality/types.hpp")
+        .with_include("modality/runtime.hpp")
+        .with_include("modality/mutator_interface.hpp")
+        .with_include_guard("MODALITY_MUTATION_CLIENT_HPP")
+        .with_src("src/mutation/client.rs")
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file(include_dir.join("mutation_client.hpp"));
 }

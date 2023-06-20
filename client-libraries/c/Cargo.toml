@@ -23,7 +23,9 @@ modality-ingest-client = { path = "../rust/modality-ingest-client" }
 modality-ingest-protocol = { path = "../rust/modality-ingest-protocol" }
 modality-mutator-protocol = { path = "../rust/modality-mutator-protocol" }
 modality-mutator-server = { path = "../rust/modality-mutator-server", features = ["server"] }
-tokio = { version = "1", features = ["rt-multi-thread"] }
+modality-mutation-plane = { path = "../rust/modality-mutation-plane" }
+modality-mutation-plane-client = { path = "../rust/modality-mutation-plane-client" }
+tokio = { version = "1", features = ["rt-multi-thread", "time"] }
 async-trait = "0.1"
 url = { version = "2.1" }
 uuid = { version = "1.0", features = ["v4"] }
