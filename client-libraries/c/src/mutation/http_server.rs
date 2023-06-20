@@ -109,18 +109,24 @@ pub extern "C" fn modality_mutator_http_server_run(
 
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
-        rt.0.block_on(modality_mutator_server::server::serve_mutators(
-            mutators,
-            None,
-            (addr, port),
-            async {
-                let _ = shutdown_rx.await.map_err(|_recv_err| {
-                    tracing::warn!("Shutdown signal channel unexpectedly closed early");
-                });
-            },
-        ));
+        rt.0.block_on(async {
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    tracing::debug!("User signled exit");
+                }
+                _ = modality_mutator_server::server::serve_mutators(
+                      mutators,
+                      None,
+                      (addr, port),
+                      async {
+                          let _ = shutdown_rx.await.map_err(|_recv_err| {
+                              tracing::warn!("Shutdown signal channel unexpectedly closed early");
+                          });
+                      },
+                ) => {},
+            }
+        });
 
-        // TODO - consider setting up tokio signal handling
         let _ = shutdown_tx;
         Ok(())
     })

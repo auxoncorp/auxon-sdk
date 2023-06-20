@@ -1,6 +1,9 @@
 use modality_ingest_client::{
     dynamic::DynamicIngestError, IngestClientInitializationError, IngestError,
 };
+use modality_mutation_plane_client::parent_connection::{
+    CommsError, MutationParentClientInitializationError,
+};
 use std::ffi::c_int;
 
 /// cbindgen::ignore
@@ -82,8 +85,14 @@ impl From<IngestError> for Error {
             AttrKeyNaming => Error::AttrKeyNaming,
             Io(_) => Error::Io,
             IngestClientInitializationError(e) => e.into(),
-            LoadConfigError(_) => Error::LoadConfigError
+            LoadConfigError(_) => Error::LoadConfigError,
         }
+    }
+}
+
+impl From<tokio::time::error::Elapsed> for Error {
+    fn from(_e: tokio::time::error::Elapsed) -> Self {
+        Error::Timeout
     }
 }
 
@@ -93,6 +102,31 @@ impl From<DynamicIngestError> for Error {
         match e {
             IngestError(e) => Error::from(e),
             NoBoundTimeline => Error::NoBoundTimeline,
+        }
+    }
+}
+
+impl From<MutationParentClientInitializationError> for Error {
+    fn from(e: MutationParentClientInitializationError) -> Self {
+        use MutationParentClientInitializationError::*;
+        match e {
+            NoIps => Error::NoIps,
+            SocketInit(_) => Error::SocketInit,
+            SocketConnection { .. } => Error::SocketConnection,
+            Tls(_) => Error::Tls,
+            ClientLocalAddrParse(_) => Error::ClientLocalAddrParse,
+            ParseIngestEndpoint(_) => Error::ParseIngestEndpoint,
+        }
+    }
+}
+
+impl From<CommsError> for Error {
+    fn from(e: CommsError) -> Self {
+        use CommsError::*;
+        match e {
+            CborEncode(_) => Error::CborEncode,
+            CborDecode(_) => Error::CborDecode,
+            Io(_) => Error::Io,
         }
     }
 }

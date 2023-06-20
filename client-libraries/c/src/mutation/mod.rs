@@ -1,3 +1,4 @@
+pub(crate) mod client;
 pub(crate) mod http_server;
 pub(crate) mod interface;
 
