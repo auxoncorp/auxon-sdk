@@ -1,7 +1,6 @@
 #![deny(warnings, clippy::all)]
 pub mod resolve;
 
-use crate::refined::SemanticErrorExplanation;
 pub use refined::*;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -399,7 +398,7 @@ mod refined {
             }
 
             self.override_mutator_attributes
-                .extend(other.override_mutator_attributes.into_iter());
+                .extend(other.override_mutator_attributes);
 
             Ok(())
         }
