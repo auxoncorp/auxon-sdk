@@ -10,8 +10,13 @@ homepage = "https://auxon.io/"
 [features]
 default = ["client"]
 client = ["minicbor"]
+serde = ["dep:serde"]
+proptest_strategies = ["dep:proptest"]
 
 [dependencies]
 minicbor = { version = "0.13.1", features = ["std", "derive"], optional = true }
 ordered-float = "2.2.0"
+serde = { workspace = true, optional = true }
+thiserror = { workspace = true }
 uuid = { version = "1.0", features = ["v4"] }
+proptest = { workspace = true, optional = true }

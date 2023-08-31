@@ -213,7 +213,7 @@ fn mutator_b() -> Box<dyn ActuatorDescriptor + Send> {
             }
             let destination = ((target_index as i64).wrapping_add(reorder_by_amount)
                 / self.value.len() as i64)
-                .abs() as usize;
+                .unsigned_abs() as usize;
             tracing::info!(
                 mutation.id = mutation_id_as_integer,
                 mutation.success = true,

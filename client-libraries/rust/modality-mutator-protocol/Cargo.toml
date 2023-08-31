@@ -10,21 +10,21 @@ homepage = "https://auxon.io/"
 [features]
 default = []
 cbor = ["dep:minicbor"]
-proptest_strategies = ["dep:proptest"]
-serde = ["dep:serde", "uuid/serde"]
+proptest_strategies = ["modality-api/proptest_strategies"]
+serde = ["dep:serde", "uuid/serde", "modality-api/serde"]
 schemars = ["dep:schemars"]
 
 [dependencies]
+modality-api = { workspace = true }
+
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
 
 minicbor = { workspace = true, optional = true }
-proptest = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]
-proptest = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tracing = { workspace = true }

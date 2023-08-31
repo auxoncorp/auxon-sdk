@@ -1,4 +1,4 @@
-use crate::attrs::{AttrVal, EventCoordinate, LogicalTime, Nanoseconds, OpaqueEventId, TimelineId};
+use crate::types::{AttrVal, EventCoordinate, LogicalTime, Nanoseconds, OpaqueEventId, TimelineId};
 use proptest::prelude::*;
 use std::borrow::Cow;
 use uuid::Uuid;

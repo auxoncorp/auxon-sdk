@@ -11,12 +11,6 @@ impl From<&timeline_id> for modality_api::TimelineId {
     }
 }
 
-impl From<&timeline_id> for modality_mutator_protocol::attrs::TimelineId {
-    fn from(tid: &timeline_id) -> Self {
-        Uuid::from_bytes(tid.0).into()
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn modality_timeline_id_init(tid: *mut timeline_id) -> c_int {
     capi_result(|| unsafe {
@@ -108,14 +102,6 @@ impl From<&logical_time> for modality_api::LogicalTime {
     }
 }
 
-impl From<&logical_time> for modality_mutator_protocol::attrs::LogicalTime {
-    fn from(lt: &logical_time) -> Self {
-        modality_mutator_protocol::attrs::LogicalTime::quaternary(
-            lt.0[0], lt.0[1], lt.0[2], lt.0[3],
-        )
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn modality_logical_time_set_unary(lt: *mut logical_time, a: u64) -> c_int {
     capi_result(|| unsafe {
@@ -195,32 +181,6 @@ impl From<&attr_val> for modality_api::AttrVal {
                 Bool(b) => (*b).into(),
                 Timestamp(t) => modality_api::Nanoseconds::from(*t).into(),
                 LogicalTime(lt) => modality_api::LogicalTime::from(&*(*lt)).into(),
-            }
-        }
-    }
-}
-
-impl From<&attr_val> for modality_mutator_protocol::attrs::AttrVal {
-    fn from(val: &attr_val) -> Self {
-        use attr_val::*;
-        unsafe {
-            match val {
-                TimelineId(tid) => {
-                    let tid = &*(*tid);
-                    modality_mutator_protocol::attrs::AttrVal::TimelineId(Box::new(tid.into()))
-                }
-                String(s) => CStr::from_ptr(*s).to_string_lossy().to_string().into(),
-                Integer(i) => (*i).into(),
-                BigInt(bi) => {
-                    let bi = &*(*bi);
-                    modality_mutator_protocol::attrs::BigInt::new_attr_val(bi.as_i128())
-                }
-                Float(f) => (*f).into(),
-                Bool(b) => (*b).into(),
-                Timestamp(t) => modality_mutator_protocol::attrs::Nanoseconds::from(*t).into(),
-                LogicalTime(lt) => {
-                    modality_mutator_protocol::attrs::LogicalTime::from(&*(*lt)).into()
-                }
             }
         }
     }

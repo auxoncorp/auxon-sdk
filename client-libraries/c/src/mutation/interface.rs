@@ -443,9 +443,9 @@ impl mutator {
             let capi_v = match v {
                 attrs::AttrVal::String(v) => attr_val::String(v.as_ptr() as *const _),
                 attrs::AttrVal::Integer(v) => attr_val::Integer(*v),
-                attrs::AttrVal::Float(v) => attr_val::Float(*v),
+                attrs::AttrVal::Float(v) => attr_val::Float(**v),
                 attrs::AttrVal::Bool(v) => attr_val::Bool(*v),
-                attrs::AttrVal::Timestamp(v) => attr_val::Timestamp(v.0),
+                attrs::AttrVal::Timestamp(v) => attr_val::Timestamp(v.get_raw()),
                 // TODO - pass through all the available variants once we unify the
                 // ingest and mutation AttrVal types. Note that some of the variants
                 // will require heap/stack allocation to hold the converted C API type

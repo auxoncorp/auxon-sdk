@@ -6,7 +6,8 @@
 //! representation used will depend on the serializer, but for json it's a map:
 //! `{"TimelineId", "..."}`.
 
-use crate::attrs::{AttrVal, EventCoordinate, LogicalTime, Nanoseconds, TimelineId};
+use crate::types::{AttrVal, EventCoordinate, LogicalTime, Nanoseconds, TimelineId};
+use ordered_float::OrderedFloat;
 use serde::{
     de::{value::MapAccessDeserializer, Visitor},
     Deserialize, Serialize,
@@ -162,10 +163,12 @@ impl<'de> Visitor<'de> for AttrValVisitor {
                 Ok(num.into())
             }
             TaggedAttrVal::NonFiniteFloat(nff) => match nff {
-                NonFiniteFloat::NaN => Ok(Self::Value::Float(f64::NAN)),
-                NonFiniteFloat::NegNaN => Ok(Self::Value::Float(-f64::NAN)),
-                NonFiniteFloat::Infinity => Ok(Self::Value::Float(f64::INFINITY)),
-                NonFiniteFloat::NegInfinity => Ok(Self::Value::Float(f64::NEG_INFINITY)),
+                NonFiniteFloat::NaN => Ok(Self::Value::Float(OrderedFloat(f64::NAN))),
+                NonFiniteFloat::NegNaN => Ok(Self::Value::Float(OrderedFloat(-f64::NAN))),
+                NonFiniteFloat::Infinity => Ok(Self::Value::Float(OrderedFloat(f64::INFINITY))),
+                NonFiniteFloat::NegInfinity => {
+                    Ok(Self::Value::Float(OrderedFloat(f64::NEG_INFINITY)))
+                }
             },
         }
     }

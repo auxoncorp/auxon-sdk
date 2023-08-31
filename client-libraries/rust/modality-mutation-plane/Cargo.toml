@@ -8,7 +8,7 @@ description = "The protocol definition of the Modality mutation plane."
 homepage = "https://auxon.io/"
 
 [dependencies]
-modality-mutator-protocol = { workspace = true , features = ["cbor", "serde"]}
+modality-mutator-protocol = { workspace = true , features = ["cbor", "serde", "proptest_strategies"]}
 
 minicbor = { workspace = true }
 uuid = { workspace = true }
