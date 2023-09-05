@@ -12,6 +12,6 @@ default = ["client"]
 client = []
 
 [dependencies]
-modality-api = { version = "0.1", features = ["client"], path = "../modality-api" }
-minicbor = { version = "0.13.1", features = ["std", "derive"] }
+modality-api = { workspace = true, features = ["client"] }
+minicbor = { workspace = true, features = ["std", "derive"] }
 
