@@ -17,12 +17,13 @@ members = [
 [workspace.dependencies]
 modality-api = { version = "0.2.0", path = "modality-api" }
 modality-auth-token = { version = "0.1", path = "modality-auth-token" }
-modality-ingest-client = { version = "0.2", path = "modality-ingest-client" }
-modality-ingest-protocol = { version = "0.1", path = "modality-ingest-protocol" }
+modality-ingest-client = { version = "0.3", path = "modality-ingest-client" }
+modality-ingest-protocol = { version = "0.2", path = "modality-ingest-protocol" }
 modality-mutator-protocol = { version = "0.2", path = "modality-mutator-protocol" }
-modality-mutator-server = { version = "0.1", path = "modality-mutator-server" }
+modality-mutator-server = { version = "0.2", path = "modality-mutator-server" }
 modality-mutation-plane = { version = "0.2", path = "modality-mutation-plane" }
-modality-plugin-utils = { version = "0.1", path = "modality-plugin-utils" }
+modality-mutation-plane-client = { version = "0.2", path = "modality-mutation-plane-client" }
+modality-plugin-utils = { version = "0.2", path = "modality-plugin-utils" }
 modality-reflector-config = { version = "0.3", path = "modality-reflector-config" }
 
 async-trait = "0.1.52"
