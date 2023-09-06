@@ -1,6 +1,6 @@
 [package]
 name = "modality-api"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/modality-sdk"
@@ -15,7 +15,7 @@ proptest_strategies = ["dep:proptest"]
 
 [dependencies]
 minicbor = { version = "0.13.1", features = ["std", "derive"], optional = true }
-ordered-float = "2.2.0"
+ordered-float = { workspace = true }
 serde = { workspace = true, optional = true }
 thiserror = { workspace = true }
 uuid = { version = "1.0", features = ["v4"] }
