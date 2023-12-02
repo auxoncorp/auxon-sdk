@@ -49,6 +49,12 @@ impl From<ParticipantId> for Uuid {
     }
 }
 
+impl MutatorId {
+    pub fn allocate() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
+
 impl From<Uuid> for MutatorId {
     fn from(v: Uuid) -> Self {
         Self(v)
