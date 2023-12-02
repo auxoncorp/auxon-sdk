@@ -22,7 +22,7 @@ pub mod owned {
     use crate::{attrs, params_attributes::is_valid_single_key_segment_contents};
     use std::collections::{BTreeMap, HashMap};
 
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub struct OwnedMutatorDescriptor {
         pub name: Option<String>,
         pub description: Option<String>,
@@ -218,7 +218,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum MutatorLayer {
         Implementational,
         Operational,
@@ -233,7 +233,7 @@ pub mod owned {
             }
         }
     }
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum MutatorStatefulness {
         /// Sticks. Has effect immediately and continuously. Stays until explicitly told to leave.
         Permanent,
@@ -254,7 +254,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum MutatorOperation {
         Delay,
         Duplicate,
@@ -286,7 +286,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub struct OrganizationCustomMetadata {
         /// Expected to be ASCII and not contain any periods.
         organization_name_segment: String,
@@ -324,7 +324,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub struct OwnedMutatorParamDescriptor {
         pub value_type: AttrType,
         /// This is used as the parameter key interfix for parameter-specific attributes
@@ -645,7 +645,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Debug, Copy, Clone, Eq, PartialEq)]
     pub enum ValueDistributionKind {
         Continuous,
         Discrete,
@@ -658,7 +658,7 @@ pub mod owned {
             }
         }
     }
-    #[derive(Copy, Clone)]
+    #[derive(Debug, Copy, Clone)]
     pub enum ValueDistributionScaling {
         Linear,
         Complex,
