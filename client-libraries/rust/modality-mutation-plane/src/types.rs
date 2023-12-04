@@ -38,6 +38,12 @@ impl From<TriggerCRDT> for Vec<u8> {
     }
 }
 
+impl ParticipantId {
+    pub fn allocate() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
+
 impl From<Uuid> for ParticipantId {
     fn from(v: Uuid) -> Self {
         Self(v)
@@ -46,6 +52,12 @@ impl From<Uuid> for ParticipantId {
 impl From<ParticipantId> for Uuid {
     fn from(v: ParticipantId) -> Self {
         v.0
+    }
+}
+
+impl MutatorId {
+    pub fn allocate() -> Self {
+        Self(Uuid::new_v4())
     }
 }
 
