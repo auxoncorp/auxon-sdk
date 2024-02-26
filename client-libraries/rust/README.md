@@ -20,9 +20,17 @@ easily create custom trace data ingest integrations.
 
 The protocol definition of the Modality ingest plane.
 
+## [`modality-mutation-plane`](./modality-mutation-plane/)
+
+The protocol definition of the Deviant mutation control plane.
+
+## [`modality-mutation-plane-client`](./modality-mutation-plane-client/)
+
+Client library to participate in the Deviant mutation control plane.
+
 ## [`modality-mutator-protocol`](./modality-mutator-protocol/)
 
-The protocol definition of the Modality mutation plane.
+The mutator part of the Deviant mutation control plane protocol defintion.
 
 ## [`modality-mutator-server`](./modality-mutator-server/)
 
