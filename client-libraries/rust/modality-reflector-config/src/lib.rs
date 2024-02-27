@@ -117,6 +117,8 @@ mod raw_toml {
     pub(crate) struct PluginsIngestMember {
         #[serde(flatten)]
         pub(crate) timeline_attributes: TimelineAttributes,
+        #[serde(flatten)]
+        pub(crate) shutdown: PluginShutdown,
         #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
     }
@@ -131,8 +133,16 @@ mod raw_toml {
     pub(crate) struct PluginsMutationMember {
         #[serde(flatten)]
         pub(crate) mutator_attributes: MutatorAttributes,
+        #[serde(flatten)]
+        pub(crate) shutdown: PluginShutdown,
         #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
+    }
+    #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
+    pub(crate) struct PluginShutdown {
+        pub(crate) shutdown_signal: Option<String>,
+        pub(crate) shutdown_timeout_millis: Option<u64>,
     }
 
     #[cfg(test)]
@@ -263,6 +273,7 @@ mod raw_toml {
         fn from(value: refined::PluginsIngestMember) -> Self {
             Self {
                 timeline_attributes: value.timeline_attributes.into(),
+                shutdown: value.shutdown.into(),
                 metadata: value.metadata,
             }
         }
@@ -271,7 +282,24 @@ mod raw_toml {
         fn from(value: refined::PluginsMutationMember) -> Self {
             Self {
                 mutator_attributes: value.mutator_attributes.into(),
+                shutdown: value.shutdown.into(),
                 metadata: value.metadata,
+            }
+        }
+    }
+
+    impl From<refined::PluginShutdown> for PluginShutdown {
+        fn from(value: refined::PluginShutdown) -> Self {
+            Self {
+                shutdown_signal: value.shutdown_signal,
+                shutdown_timeout_millis: value.shutdown_timeout.map(|v| {
+                    let millis = v.as_millis();
+                    if millis >= u64::MAX as u128 {
+                        u64::MAX
+                    } else {
+                        millis as u64
+                    }
+                }),
             }
         }
     }
@@ -418,6 +446,7 @@ mod refined {
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct PluginsIngestMember {
         pub timeline_attributes: TimelineAttributes,
+        pub shutdown: PluginShutdown,
         pub metadata: BTreeMap<String, TomlValue>,
     }
     #[derive(Debug, Clone, Default, PartialEq)]
@@ -427,7 +456,13 @@ mod refined {
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct PluginsMutationMember {
         pub mutator_attributes: MutatorAttributes,
+        pub shutdown: PluginShutdown,
         pub metadata: BTreeMap<String, TomlValue>,
+    }
+    #[derive(Debug, Clone, Default, PartialEq)]
+    pub struct PluginShutdown {
+        pub shutdown_signal: Option<String>,
+        pub shutdown_timeout: Option<Duration>,
     }
 
     #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -725,6 +760,7 @@ mod refined {
         fn try_from(value: raw_toml::PluginsIngestMember) -> Result<Self, Self::Error> {
             Ok(Self {
                 timeline_attributes: value.timeline_attributes.try_into()?,
+                shutdown: value.shutdown.into(),
                 metadata: value.metadata,
             })
         }
@@ -754,8 +790,18 @@ mod refined {
         fn try_from(value: raw_toml::PluginsMutationMember) -> Result<Self, Self::Error> {
             Ok(Self {
                 mutator_attributes: value.mutator_attributes.try_into()?,
+                shutdown: value.shutdown.into(),
                 metadata: value.metadata,
             })
+        }
+    }
+
+    impl From<raw_toml::PluginShutdown> for PluginShutdown {
+        fn from(value: raw_toml::PluginShutdown) -> Self {
+            Self {
+                shutdown_signal: value.shutdown_signal,
+                shutdown_timeout: value.shutdown_timeout_millis.map(Duration::from_millis),
+            }
         }
     }
 
@@ -958,6 +1004,8 @@ override-timeline-attributes = [
     'c = false',
     'q = 99',
 ]
+shutdown-signal = 'SIGINT'
+shutdown-timeout-millis = 1000
 
 [plugins.ingest.collectors.lttng-live.metadata]
 all-the-custom = true
