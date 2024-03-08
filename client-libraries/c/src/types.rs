@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[repr(C)]
 pub struct timeline_id([u8; 16]);
 
-impl From<&timeline_id> for modality_api::TimelineId {
+impl From<&timeline_id> for auxon_sdk::api::TimelineId {
     fn from(tid: &timeline_id) -> Self {
         Uuid::from_bytes(tid.0).into()
     }
@@ -15,7 +15,7 @@ impl From<&timeline_id> for modality_api::TimelineId {
 pub extern "C" fn modality_timeline_id_init(tid: *mut timeline_id) -> c_int {
     capi_result(|| unsafe {
         let tid = tid.as_mut().ok_or(Error::NullPointer)?;
-        let new_tid = modality_api::TimelineId::allocate();
+        let new_tid = auxon_sdk::api::TimelineId::allocate();
         tid.0.copy_from_slice(new_tid.get_raw().as_bytes());
         Ok(())
     })
@@ -96,9 +96,9 @@ impl logical_time {
     }
 }
 
-impl From<&logical_time> for modality_api::LogicalTime {
+impl From<&logical_time> for auxon_sdk::api::LogicalTime {
     fn from(lt: &logical_time) -> Self {
-        modality_api::LogicalTime::quaternary(lt.0[0], lt.0[1], lt.0[2], lt.0[3])
+        auxon_sdk::api::LogicalTime::quaternary(lt.0[0], lt.0[1], lt.0[2], lt.0[3])
     }
 }
 
@@ -162,25 +162,25 @@ pub enum attr_val {
     LogicalTime(*const logical_time),
 }
 
-impl From<&attr_val> for modality_api::AttrVal {
+impl From<&attr_val> for auxon_sdk::api::AttrVal {
     fn from(val: &attr_val) -> Self {
         use attr_val::*;
         unsafe {
             match val {
                 TimelineId(tid) => {
                     let tid = &*(*tid);
-                    modality_api::AttrVal::TimelineId(Box::new(tid.into()))
+                    auxon_sdk::api::AttrVal::TimelineId(Box::new(tid.into()))
                 }
                 String(s) => CStr::from_ptr(*s).to_string_lossy().to_string().into(),
                 Integer(i) => (*i).into(),
                 BigInt(bi) => {
                     let bi = &*(*bi);
-                    modality_api::BigInt::new_attr_val(bi.as_i128())
+                    auxon_sdk::api::BigInt::new_attr_val(bi.as_i128())
                 }
                 Float(f) => (*f).into(),
                 Bool(b) => (*b).into(),
-                Timestamp(t) => modality_api::Nanoseconds::from(*t).into(),
-                LogicalTime(lt) => modality_api::LogicalTime::from(&*(*lt)).into(),
+                Timestamp(t) => auxon_sdk::api::Nanoseconds::from(*t).into(),
+                LogicalTime(lt) => auxon_sdk::api::LogicalTime::from(&*(*lt)).into(),
             }
         }
     }

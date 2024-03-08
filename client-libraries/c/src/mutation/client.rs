@@ -3,12 +3,12 @@ use crate::{
     mutation::{attr_kv, mutator},
     runtime, Error, NullPtrExt,
 };
-use modality_mutation_plane::{
+use auxon_sdk::mutation_plane::{
     protocol::{LeafwardsMessage, RootwardsMessage, MUTATION_PROTOCOL_VERSION},
     types::{AttrKv, AttrKvs, MutationId, MutatorId, ParticipantId},
 };
-use modality_mutation_plane_client::parent_connection::MutationParentConnection;
-use modality_mutator_protocol::descriptor::MutatorDescriptor;
+use auxon_sdk::mutation_plane_client::parent_connection::MutationParentConnection;
+use auxon_sdk::mutator_protocol::descriptor::MutatorDescriptor;
 use std::ffi::{c_char, c_int, CStr};
 use std::{mem, slice, time::Duration};
 use tokio::{runtime::Runtime, time::timeout};

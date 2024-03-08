@@ -1,5 +1,5 @@
 use crate::{attr_val, capi_result, runtime, timeline_id, Error, NullPtrExt};
-use modality_ingest_client::{dynamic::DynamicIngestClient, IngestClient, UnauthenticatedState};
+use auxon_sdk::ingest_client::{dynamic::DynamicIngestClient, IngestClient, UnauthenticatedState};
 use std::ffi::{c_char, c_int, CStr};
 use std::{mem, slice};
 use tokio::runtime::Runtime;
@@ -9,14 +9,14 @@ use url::Url;
 #[repr(transparent)]
 pub struct interned_attr_key(pub u32);
 
-impl From<interned_attr_key> for modality_ingest_protocol::InternedAttrKey {
+impl From<interned_attr_key> for auxon_sdk::ingest_protocol::InternedAttrKey {
     fn from(k: interned_attr_key) -> Self {
-        modality_ingest_protocol::InternedAttrKey::from(k.0)
+        auxon_sdk::ingest_protocol::InternedAttrKey::from(k.0)
     }
 }
 
-impl From<modality_ingest_protocol::InternedAttrKey> for interned_attr_key {
-    fn from(k: modality_ingest_protocol::InternedAttrKey) -> Self {
+impl From<auxon_sdk::ingest_protocol::InternedAttrKey> for interned_attr_key {
+    fn from(k: auxon_sdk::ingest_protocol::InternedAttrKey) -> Self {
         interned_attr_key(u32::from(k))
     }
 }
@@ -29,12 +29,12 @@ pub struct attr {
 
 impl From<&attr>
     for (
-        modality_ingest_protocol::InternedAttrKey,
-        modality_api::AttrVal,
+        auxon_sdk::ingest_protocol::InternedAttrKey,
+        auxon_sdk::api::AttrVal,
     )
 {
     fn from(attr: &attr) -> Self {
-        let val = modality_api::AttrVal::from(&attr.val);
+        let val = auxon_sdk::api::AttrVal::from(&attr.val);
         (attr.key.into(), val)
     }
 }

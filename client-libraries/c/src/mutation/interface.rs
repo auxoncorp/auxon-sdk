@@ -1,5 +1,6 @@
 use crate::{attr_val, capi_result, util, Error, NullPtrExt};
-use modality_mutator_protocol::{attrs, descriptor::owned as mmi};
+use auxon_sdk::api::{AttrKey, AttrType, AttrVal};
+use auxon_sdk::mutator_protocol::descriptor::owned as mmi;
 use std::ffi::{c_char, c_int, c_void};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -21,19 +22,19 @@ pub enum attr_type {
     Any,
 }
 
-impl From<attr_type> for attrs::AttrType {
+impl From<attr_type> for AttrType {
     fn from(value: attr_type) -> Self {
         use attr_type::*;
         match value {
-            TimelineId => attrs::AttrType::TimelineId,
-            String => attrs::AttrType::String,
-            Integer => attrs::AttrType::Integer,
-            BigInt => attrs::AttrType::BigInt,
-            Float => attrs::AttrType::Float,
-            Bool => attrs::AttrType::Bool,
-            Timestamp => attrs::AttrType::Nanoseconds,
-            LogicalTime => attrs::AttrType::LogicalTime,
-            Any => attrs::AttrType::Any,
+            TimelineId => AttrType::TimelineId,
+            String => AttrType::String,
+            Integer => AttrType::Integer,
+            BigInt => AttrType::BigInt,
+            Float => AttrType::Float,
+            Bool => AttrType::Bool,
+            Timestamp => AttrType::Nanoseconds,
+            LogicalTime => AttrType::LogicalTime,
+            Any => AttrType::Any,
         }
     }
 }
@@ -48,7 +49,7 @@ pub struct attr_kv {
 #[repr(transparent)]
 struct opt_attr_val_ptr(*const attr_val);
 
-impl From<opt_attr_val_ptr> for Option<attrs::AttrVal> {
+impl From<opt_attr_val_ptr> for Option<AttrVal> {
     fn from(value: opt_attr_val_ptr) -> Self {
         if value.0.is_null() {
             None
@@ -432,7 +433,7 @@ impl mutator {
     pub(crate) fn inject(
         &self,
         mut_id: Uuid,
-        params: BTreeMap<attrs::AttrKey, attrs::AttrVal>,
+        params: BTreeMap<AttrKey, AttrVal>,
         capi_params_storage: &mut Vec<attr_kv>,
     ) -> Result<(), Error> {
         let cb = self.inject.ok_or(Error::NullMutatorInterfaceFunction)?;
@@ -441,11 +442,11 @@ impl mutator {
         capi_params_storage.clear();
         for (k, v) in params.iter() {
             let capi_v = match v {
-                attrs::AttrVal::String(v) => attr_val::String(v.as_ptr() as *const _),
-                attrs::AttrVal::Integer(v) => attr_val::Integer(*v),
-                attrs::AttrVal::Float(v) => attr_val::Float(**v),
-                attrs::AttrVal::Bool(v) => attr_val::Bool(*v),
-                attrs::AttrVal::Timestamp(v) => attr_val::Timestamp(v.get_raw()),
+                AttrVal::String(v) => attr_val::String(v.as_ptr() as *const _),
+                AttrVal::Integer(v) => attr_val::Integer(*v),
+                AttrVal::Float(v) => attr_val::Float(**v),
+                AttrVal::Bool(v) => attr_val::Bool(*v),
+                AttrVal::Timestamp(v) => attr_val::Timestamp(v.get_raw()),
                 // TODO - pass through all the available variants once we unify the
                 // ingest and mutation AttrVal types. Note that some of the variants
                 // will require heap/stack allocation to hold the converted C API type

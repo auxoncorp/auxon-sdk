@@ -1,5 +1,5 @@
-# C Client Library for Modality
+# C Client Library for Auxon
 
-A C library used to interact with Auxon's Modality suite of products.
+A C library used to interact with Auxon's suite of products.
 
 See the [ctests](./ctest) for example usage.

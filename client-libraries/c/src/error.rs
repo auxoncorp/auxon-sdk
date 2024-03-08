@@ -1,7 +1,7 @@
-use modality_ingest_client::{
+use auxon_sdk::ingest_client::{
     dynamic::DynamicIngestError, IngestClientInitializationError, IngestError,
 };
-use modality_mutation_plane_client::parent_connection::{
+use auxon_sdk::mutation_plane_client::parent_connection::{
     CommsError, MutationParentClientInitializationError,
 };
 use std::ffi::c_int;

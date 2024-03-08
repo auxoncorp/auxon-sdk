@@ -4,9 +4,9 @@ use crate::{
     runtime, util, Error,
 };
 use async_trait::async_trait;
-use modality_mutator_protocol::{
+use auxon_sdk::api::{AttrKey, AttrVal};
+use auxon_sdk::mutator_protocol::{
     actuator::MutatorActuator,
-    attrs::{AttrKey, AttrVal},
     mutator::{ActuatorDescriptor, CombinedMutator},
 };
 use std::collections::BTreeMap;
@@ -114,7 +114,7 @@ pub extern "C" fn modality_mutator_http_server_run(
                 _ = tokio::signal::ctrl_c() => {
                     tracing::debug!("User signled exit");
                 }
-                _ = modality_mutator_server::server::serve_mutators(
+                _ = auxon_sdk::mutator_server::server::serve_mutators(
                       mutators,
                       None,
                       (addr, port),

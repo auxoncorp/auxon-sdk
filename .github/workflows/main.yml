@@ -73,7 +73,7 @@ jobs:
         working-directory: ./client-libraries/rust
 
       - name: Lint C API with Clippy
-        run: cargo clippy
+        run: cargo clippy --all --all-features --no-deps -- -W clippy::all -D warnings
         working-directory: ./client-libraries/c
 
       - name: Build C API Tests
