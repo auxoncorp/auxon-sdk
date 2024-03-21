@@ -1,11 +1,11 @@
 [package]
 name = "modality-capi"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Jon Lamb <jon@auxon.io>"]
 license = "Apache-2.0"
-repository = "https://github.com/auxoncorp/modality-sdk"
-description = "The C & C++ FFI for Auxon's Modality SDK"
+repository = "https://github.com/auxoncorp/auxon-sdk"
+description = "The C & C++ FFI for Auxon's SDK"
 homepage = "https://auxon.io/"
 build = "build.rs"
 exclude = ["ctest"]
@@ -18,13 +18,7 @@ name = "modality"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-modality-api = { path = "../rust/modality-api" }
-modality-ingest-client = { path = "../rust/modality-ingest-client" }
-modality-ingest-protocol = { path = "../rust/modality-ingest-protocol" }
-modality-mutator-protocol = { path = "../rust/modality-mutator-protocol" }
-modality-mutator-server = { path = "../rust/modality-mutator-server", features = ["server"] }
-modality-mutation-plane = { path = "../rust/modality-mutation-plane" }
-modality-mutation-plane-client = { path = "../rust/modality-mutation-plane-client" }
+auxon-sdk = { path = "../rust", features = ["modality", "deviant", "mutator_server"] }
 tokio = { version = "1", features = ["rt-multi-thread", "time", "macros", "signal"] }
 async-trait = "0.1"
 url = { version = "2.1" }

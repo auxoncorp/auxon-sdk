@@ -1,7 +1,7 @@
-# The Modality SDK
+# The Auxon SDK
 
 A collection of clients, servers, protocols, and general API types for
-interacting with the APIs that are used throughout Auxon's Modality
+interacting with the APIs that are used throughout Auxon's
 suite of tools.
 
 You can find more information about the entities and concepts referenced
@@ -21,7 +21,7 @@ information.
 
 ### C
 
-The C & C++ FFI for Auxon's Modality SDK.
+The C & C++ FFI for Auxon's SDK.
 
 See the [C sdk](./client-libraries/c/) directly for more
 information.

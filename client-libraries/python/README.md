@@ -1,7 +1,7 @@
-# Python Client Library for Modality
+# Python Client Library for Auxon
 
 This is a library for the python programming language used to interact with
-Auxon's Modality suite of products.
+Auxon's suite of products.
 
 It currently provides read access to data stored within the Modality database,
 both as raw trace data and in-place statistical analyses.

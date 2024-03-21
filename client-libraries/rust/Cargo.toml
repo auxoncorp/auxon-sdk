@@ -1,63 +1,95 @@
-[workspace]
-resolver = "2"
+[package]
+name = "auxon-sdk"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/auxoncorp/auxon-sdk"
+description = "A collection of clients, servers, protocols, and general API types for interacting with the APIs that are used throughout Auxon's suite of tools"
+homepage = "https://auxon.io/"
 
-members = [
-    "modality-api",
-    "modality-auth-token",
-    "modality-ingest-client",
-    "modality-ingest-protocol",
-    "modality-mutator-protocol",
-    "modality-mutator-server",
-    "modality-mutation-plane",
-    "modality-mutation-plane-client",
-    "modality-plugin-utils",
-    "modality-reflector-config",
+[features]
+default = []
+modality = [
+    "dep:minicbor",
+    "dep:native-tls",
+    "dep:tokio",
+    "dep:tokio-native-tls",
+    "dep:clap",
+    "dep:tracing-subscriber",
+    "dep:futures",
+    "dep:exitcode",
+    "dep:nix",
+    "dep:tracing-modality",
 ]
+deviant = [
+    "modality",
+    "dep:async-trait",
+    "dep:tokio-util",
+    "dep:minicbor-io",
+]
+mutator_server = [
+    "modality",
+    "deviant",
+    "dep:axum",
+    "dep:utoipa",
+    "dep:utoipa-swagger-ui",
+    "dep:parking_lot",
+    "dep:percent-encoding",
+    "dep:reqwest",
+    "dep:serde_json",
+]
+test_support = ["dep:proptest"]
+schemars = ["dep:schemars"]
 
-[workspace.dependencies]
-modality-api = { version = "0.3.0", path = "modality-api" }
-modality-auth-token = { version = "0.2", path = "modality-auth-token" }
-modality-ingest-client = { version = "0.4", path = "modality-ingest-client" }
-modality-ingest-protocol = { version = "0.3", path = "modality-ingest-protocol" }
-modality-mutator-protocol = { version = "0.3", path = "modality-mutator-protocol" }
-modality-mutator-server = { version = "0.3", path = "modality-mutator-server" }
-modality-mutation-plane = { version = "0.3", path = "modality-mutation-plane" }
-modality-mutation-plane-client = { version = "0.3", path = "modality-mutation-plane-client" }
-modality-plugin-utils = { version = "0.3", path = "modality-plugin-utils" }
-modality-reflector-config = { version = "0.4", path = "modality-reflector-config" }
-
-async-trait = "0.1.52"
-axum = "0.6"
-axum-extra = "0.6"
-axum-macros = "0.6"
-clap = { version = "4.3", features = ["color", "derive", "env"] }
-dirs = "4.0.0"
-exitcode = "1.1.2"
-futures = "0.3.21"
+[dependencies]
 hex = "0.4"
-lazy_static = "1.4"
-minicbor = {version = "0.13.1", features = ["std", "derive"] }
-minicbor-io = {version = "0.8", features = ["async-io"]}
-native-tls = "0.2.10"
-nix = "0.26.2"
-ordered-float = "3.7.0"
-parking_lot = "0.12.0"
-percent-encoding = { version = "2.1.0" }
-proptest = { version = "1.0", default-features = false, features = ["std"] }
-regex = "1.6"
-reqwest = { version = "0.11", default-features = false, features = ["blocking", "stream", "json", "default-tls"] }
-schemars = { version = "0.8.8", features=["uuid1", "chrono"] }
-serde = { version = "1.0", features=["derive"] }
-serde_json = { version = "1.0" , features = ["float_roundtrip"] }
 thiserror = "1"
-tokio = { version = "1" }
-tokio-native-tls = "0.3.0"
-tokio-stream = { version = "0.1.8", features = ["net"] }
-tokio-util = { version = "0.7.3", features = ["compat"] }
-toml = "0.5"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"] }
-utoipa = { version = "3.0", features = ["uuid", "axum_extras"] }
-utoipa-swagger-ui = { version = "3.0", features = ["axum"] }
-url = { version = "2.1", features = ["serde"] }
+dirs = "4.0.0"
 uuid = { version = "1", default-features = false, features = ["std", "v4", "v5", "serde"] }
+ordered-float = "3.7.0"
+toml = "0.5"
+serde = { version = "1.0", features=["derive"] }
+url = { version = "2.1", features = ["serde"] }
+tracing = "0.1"
+regex = "1.6"
+lazy_static = "1.4"
+
+proptest = { version = "1.0", default-features = false, features = ["std"], optional = true }
+schemars = { version = "0.8.8", features=["uuid1", "chrono"], optional = true }
+minicbor = { version = "0.13.1", features = ["std", "derive"], optional = true }
+native-tls = { version = "0.2.10", optional = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "tracing", "net", "signal", "net", "io-util", "fs"], optional = true }
+tokio-native-tls = { version = "0.3.0", optional = true }
+clap = { version = "4.3", features = ["color", "derive", "env"], optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"], optional = true }
+futures = { version = "0.3.21", optional = true }
+exitcode = { version = "1.1.2", optional = true }
+tracing-modality = { version = "0.2", optional = true }
+async-trait = { version = "0.1.52", optional = true }
+tokio-util = { version = "0.7.3", features = ["compat"], optional = true }
+minicbor-io = { version = "0.8", features = ["async-io"], optional = true }
+axum = { version = "0.6", optional = true }
+utoipa = { version = "3.0", features = ["uuid", "axum_extras"], optional = true }
+utoipa-swagger-ui = { version = "3.0", features = ["axum"], optional = true }
+parking_lot = { version = "0.12.0", optional = true }
+percent-encoding = { version = "2.1.0", optional = true }
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "stream", "json", "default-tls"], optional = true }
+serde_json = { version = "1.0" , features = ["float_roundtrip"], optional = true }
+
+[target.'cfg(target_family = "unix")'.dependencies]
+nix = { version = "0.26.2", optional = true }
+
+[dev-dependencies]
+proptest = "1.0"
+
+[[example]]
+name = "no_mutators"
+required-features = ["mutator_server"]
+
+[[example]]
+name = "single_mutator"
+required-features = ["mutator_server"]
+
+[[example]]
+name = "multi_mutator"
+required-features = ["mutator_server"]

@@ -1,10 +1,10 @@
 [project]
 name = "modality"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Russell Mull", email="russell@auxon.io" },
 ]
-description = "A python client library for the Modality API"
+description = "A python client library for the Auxon SDK"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -14,8 +14,8 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/auxoncorp/modality-sdk/client-libraries/python"
-"Bug Tracker" = "https://github.com/auxoncorp/modality-sdk/issues"
+"Homepage" = "https://github.com/auxoncorp/auxon-sdk/client-libraries/python"
+"Bug Tracker" = "https://github.com/auxoncorp/auxon-sdk/issues"
 
 [build-system]
 requires = ["hatchling"]
