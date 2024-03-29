@@ -1,6 +1,6 @@
 [package]
 name = "auxon-sdk"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/auxon-sdk"
@@ -93,3 +93,6 @@ required-features = ["mutator_server"]
 [[example]]
 name = "multi_mutator"
 required-features = ["mutator_server"]
+
+[package.metadata.docs.rs]
+all-features = true
