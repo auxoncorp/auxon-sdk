@@ -108,9 +108,9 @@ where
     };
 
     // setup custom tracer including ModalityLayer
-    #[cfg(feature = "tracing_modality")]
+    #[cfg(feature = "modality_tracing")]
     let maybe_modality = {
-        let mut modality_tracing_options = tracing_modality::Options::default();
+        let mut modality_tracing_options = crate::tracing::Options::default();
         let maybe_preferred_ingest_parent_socket = if let Some(ingest_parent_url) = config
             .ingest
             .as_ref()
@@ -131,7 +131,7 @@ where
 
         use tracing_subscriber::filter::{EnvFilter, LevelFilter};
         let (disp, maybe_modality_ingest_handle) =
-            match tracing_modality::blocking::ModalityLayer::init_with_options(
+            match crate::tracing::blocking::ModalityLayer::init_with_options(
                 modality_tracing_options,
             ) {
                 Ok((modality_layer, modality_ingest_handle)) => {
@@ -260,7 +260,7 @@ where
     // in order to ensure that the shutdown_tx side of
     // the shutdown signal channel does not drop first.
     std::mem::drop(runtime);
-    #[cfg(feature = "tracing_modality")]
+    #[cfg(feature = "modality_tracing")]
     {
         if let Some(modality_ingest_handle) = maybe_modality {
             modality_ingest_handle.finish();
