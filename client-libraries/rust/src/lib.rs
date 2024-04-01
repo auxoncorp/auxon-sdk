@@ -19,3 +19,6 @@ pub mod mutation_plane_client;
 pub mod mutator_protocol;
 #[cfg(feature = "deviant")]
 pub mod mutator_server;
+
+#[cfg(feature = "modality_tracing")]
+pub mod tracing;

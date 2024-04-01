@@ -108,6 +108,7 @@ where
     };
 
     // setup custom tracer including ModalityLayer
+    #[cfg(feature = "tracing_modality")]
     let maybe_modality = {
         let mut modality_tracing_options = tracing_modality::Options::default();
         let maybe_preferred_ingest_parent_socket = if let Some(ingest_parent_url) = config
@@ -259,8 +260,11 @@ where
     // in order to ensure that the shutdown_tx side of
     // the shutdown signal channel does not drop first.
     std::mem::drop(runtime);
-    if let Some(modality_ingest_handle) = maybe_modality {
-        modality_ingest_handle.finish();
+    #[cfg(feature = "tracing_modality")]
+    {
+        if let Some(modality_ingest_handle) = maybe_modality {
+            modality_ingest_handle.finish();
+        }
     }
     let _maybe_shutdown_tx = maybe_shutdown_tx;
     out_exit_code
