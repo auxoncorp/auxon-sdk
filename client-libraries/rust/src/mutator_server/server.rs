@@ -266,7 +266,7 @@ pub(crate) mod mutator {
 }
 
 /// An extractor to read the 'mutator_apikey' header and check that it's the right one.
-pub struct ValidApiKeyHeader(String);
+pub struct ValidApiKeyHeader(());
 
 #[async_trait]
 impl FromRequestParts<mutator::Store> for ValidApiKeyHeader {
@@ -290,7 +290,7 @@ impl FromRequestParts<mutator::Store> for ValidApiKeyHeader {
             }
         }
 
-        Ok(ValidApiKeyHeader(api_key.to_string()))
+        Ok(ValidApiKeyHeader(()))
     }
 }
 

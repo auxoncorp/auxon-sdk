@@ -185,7 +185,7 @@ impl schemars::JsonSchema for AttrVal {
 
         let tagged_attr_val_schema = schemars::schema_for!(TaggedAttrVal);
         gen.definitions_mut()
-            .extend(tagged_attr_val_schema.definitions.clone().into_iter());
+            .extend(tagged_attr_val_schema.definitions.clone());
 
         Schema::Object(SchemaObject {
             subschemas: Some(Box::new(SubschemaValidation {
