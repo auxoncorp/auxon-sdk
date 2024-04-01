@@ -1,6 +1,6 @@
 [package]
 name = "auxon-sdk"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/auxoncorp/auxon-sdk"
@@ -19,7 +19,6 @@ modality = [
     "dep:futures",
     "dep:exitcode",
     "dep:nix",
-    "dep:tracing-modality",
 ]
 deviant = [
     "modality",
@@ -37,6 +36,17 @@ mutator_server = [
     "dep:percent-encoding",
     "dep:reqwest",
     "dep:serde_json",
+]
+modality_tracing = [
+    "modality",
+    "dep:anyhow",
+    "dep:serde_json",
+    "dep:once_cell",
+    "dep:tracing-serde-wire",
+    "dep:tracing-serde-structured",
+    "dep:tracing-core",
+    "dep:parking_lot",
+    "dep:duplicate",
 ]
 test_support = ["dep:proptest"]
 schemars = ["dep:schemars"]
@@ -64,7 +74,6 @@ clap = { version = "4.3", features = ["color", "derive", "env"], optional = true
 tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"], optional = true }
 futures = { version = "0.3.21", optional = true }
 exitcode = { version = "1.1.2", optional = true }
-tracing-modality = { version = "0.3", optional = true }
 async-trait = { version = "0.1.52", optional = true }
 tokio-util = { version = "0.7.3", features = ["compat"], optional = true }
 minicbor-io = { version = "0.8", features = ["async-io"], optional = true }
@@ -75,12 +84,21 @@ parking_lot = { version = "0.12.0", optional = true }
 percent-encoding = { version = "2.1.0", optional = true }
 reqwest = { version = "0.11", default-features = false, features = ["blocking", "stream", "json", "default-tls"], optional = true }
 serde_json = { version = "1.0" , features = ["float_roundtrip"], optional = true }
+anyhow = { version = "1", optional = true }
+once_cell = { version = "1.12.0", optional = true }
+tracing-serde-wire = { version = "0.1", optional = true }
+tracing-serde-structured = { version = "0.1", optional = true }
+tracing-core = { version = "0.1.27", optional = true }
+duplicate = { version = "0.4.1", optional = true }
 
 [target.'cfg(target_family = "unix")'.dependencies]
 nix = { version = "0.26.2", optional = true }
 
 [dev-dependencies]
 proptest = "1.0"
+# For the examples
+rand = { version = "0.8.5" }
+ctrlc = "3.2.2"
 
 [[example]]
 name = "no_mutators"
@@ -93,6 +111,18 @@ required-features = ["mutator_server"]
 [[example]]
 name = "multi_mutator"
 required-features = ["mutator_server"]
+
+[[example]]
+name = "basic"
+required-features = ["modality_tracing"]
+
+[[example]]
+name = "monitored_pipeline"
+required-features = ["modality_tracing"]
+
+[[example]]
+name = "simple_multi"
+required-features = ["modality_tracing"]
 
 [package.metadata.docs.rs]
 all-features = true
