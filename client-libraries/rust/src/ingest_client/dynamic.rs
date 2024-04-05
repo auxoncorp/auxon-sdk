@@ -1,9 +1,9 @@
 use crate::api::{AttrVal, TimelineId};
-use crate::ingest_protocol::{IngestMessage, InternedAttrKey};
+use crate::ingest_protocol::{IngestMessage, IngestResponse, InternedAttrKey};
 use thiserror::Error;
 
 use crate::ingest_client::{
-    BoundTimelineState, IngestClient, IngestClientCommon, IngestError, ReadyState,
+    BoundTimelineState, IngestClient, IngestClientCommon, IngestError, IngestStatus, ReadyState,
 };
 
 /// A more dynamic ingest client, for places where the session types are difficult to use.
@@ -74,6 +74,34 @@ impl DynamicIngestClient {
 
         self.common.event(ordering, attrs).await?;
         Ok(())
+    }
+
+    pub async fn flush(&mut self) -> Result<(), IngestError> {
+        self.common.flush().await
+    }
+
+    pub async fn status(&mut self) -> Result<IngestStatus, IngestError> {
+        let resp = self
+            .common
+            .send_recv(&IngestMessage::IngestStatusRequest {})
+            .await?;
+
+        match resp {
+            IngestResponse::IngestStatusResponse {
+                current_timeline,
+                events_received,
+                events_written,
+                events_pending,
+            } => Ok(IngestStatus {
+                current_timeline,
+                events_received,
+                events_written,
+                events_pending,
+            }),
+            _ => Err(IngestError::ProtocolError(
+                "Invalid status response recieved",
+            )),
+        }
     }
 }
 
