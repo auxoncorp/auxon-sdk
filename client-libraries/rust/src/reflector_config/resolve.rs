@@ -11,9 +11,14 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 const CONFIG_DIR: &str = "modality-reflector";
 const SYS_CONFIG_BASE_PATH: &str = "/etc";
 
+const MODALITY_HOST_ENV_VAR: &str = "MODALITY_HOST";
+
+/// Load a Config and auth token. Either path may be given explicitly; if not, they are loaded from the
+/// default system and user profile directories. (see `load_config` and `resolve_reflector_auth_token`).
+/// Environment variable overrides are automatically incorporated. (See `ConfigContext::apply_environment_variable_overrides`)
 pub fn load_config_and_auth_token(
     manually_provided_config_path: Option<PathBuf>,
-    manually_provided_auth_token: Option<PathBuf>,
+    manually_provided_auth_token_path: Option<PathBuf>,
 ) -> Result<
     (crate::reflector_config::refined::Config, AuthToken),
     Box<dyn std::error::Error + Send + Sync>,
@@ -25,7 +30,7 @@ pub fn load_config_and_auth_token(
     } = ConfigContext::load_default(manually_provided_config_path)?;
 
     let auth_token =
-        resolve_reflector_auth_token(manually_provided_auth_token, &config_file_parent_dir)?;
+        resolve_reflector_auth_token(manually_provided_auth_token_path, &config_file_parent_dir)?;
     Ok((cfg, auth_token))
 }
 
@@ -72,18 +77,61 @@ impl ConfigContext {
     pub fn load_default(
         config_file_override: Option<PathBuf>,
     ) -> Result<Self, ExpandedConfigLoadError> {
-        if let Some(cc) = load_config(config_file_override)? {
-            Ok(cc)
+        let mut cc = if let Some(cc) = load_config(config_file_override)? {
+            cc
         } else {
             let config_file_parent_dir = env::current_dir().map_err(|ioerr| {
                 ExpandedConfigLoadError::ConfigLoadError(ConfigLoadError::Io(ioerr))
             })?;
-            Ok(ConfigContext {
+            ConfigContext {
                 config: Default::default(),
                 config_file: None,
                 config_file_parent_dir,
-            })
+            }
+        };
+
+        cc.apply_environment_variable_overrides()?;
+
+        Ok(cc)
+    }
+
+    /// Override values in this configuration with values from environment variables, if they are set.
+    ///
+    /// * `MODALITY_HOST`: Overrides `ingest.protocol_parent_url` and
+    ///   `mutation.protocol_parent_url`, to connect to this host, on
+    ///   the default port.
+    pub fn apply_environment_variable_overrides(&mut self) -> Result<(), ExpandedConfigLoadError> {
+        if let Some(modality_host) = env_str(MODALITY_HOST_ENV_VAR)? {
+            if self.config.ingest.is_none() {
+                self.config.ingest = Some(Default::default());
+            }
+
+            let ingest = self.config.ingest.as_mut().unwrap();
+            ingest.protocol_parent_url = Some(
+                url::Url::parse(&format!("modality-ingest://{modality_host}")).map_err(|_| {
+                    ExpandedConfigLoadError::InvalidHostNameFromEnv {
+                        var: MODALITY_HOST_ENV_VAR,
+                        value: modality_host.clone(),
+                    }
+                })?,
+            );
+
+            if self.config.mutation.is_none() {
+                self.config.mutation = Some(Default::default());
+            }
+
+            let mutation = self.config.mutation.as_mut().unwrap();
+            mutation.protocol_parent_url = Some(
+                url::Url::parse(&format!("modality-mutation://{modality_host}")).map_err(|_| {
+                    ExpandedConfigLoadError::InvalidHostNameFromEnv {
+                        var: MODALITY_HOST_ENV_VAR,
+                        value: modality_host,
+                    }
+                })?,
+            );
         }
+
+        Ok(())
     }
 }
 
@@ -118,7 +166,7 @@ fn load_user_or_env_config(
 ) -> Result<Option<ConfigContext>, ExpandedConfigLoadError> {
     let cfg_path = match loc {
         UserOrEnvPath::User => user_config_path(),
-        UserOrEnvPath::Env => env_config_path()?,
+        UserOrEnvPath::Env => env_config_path(),
     };
     match cfg_path {
         Some(p) if p.exists() => {
@@ -147,23 +195,26 @@ fn user_config_path() -> Option<PathBuf> {
     dirs::config_dir().map(|d| d.join(CONFIG_DIR).join(CONFIG_FILE_NAME))
 }
 
-fn env_config_path() -> Result<Option<PathBuf>, ExpandedConfigLoadError> {
-    match env::var(CONFIG_ENV_VAR) {
-        Ok(env_path) => Ok(PathBuf::from(env_path).into()),
+fn env_config_path() -> Option<PathBuf> {
+    env::var_os(CONFIG_ENV_VAR).map(PathBuf::from)
+}
+
+fn env_str(var: &'static str) -> Result<Option<String>, ExpandedConfigLoadError> {
+    match env::var(var) {
+        Ok(s) => Ok(Some(s)),
         Err(env::VarError::NotPresent) => Ok(None),
-        Err(env::VarError::NotUnicode(_)) => {
-            Err(ExpandedConfigLoadError::EnvVarSpecifiedConfigNonUtf8)
-        }
+        Err(env::VarError::NotUnicode(_)) => Err(ExpandedConfigLoadError::NonUnicodeEnvVar { var }),
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExpandedConfigLoadError {
-    #[error(
-        "The {} environment variable contained a non-UTF-8-compatible path.",
-        CONFIG_ENV_VAR
-    )]
-    EnvVarSpecifiedConfigNonUtf8,
+    #[error("Configuration environment variable '{var}' contained a non-unicode value")]
+    NonUnicodeEnvVar { var: &'static str },
+
+    #[error("Invalid hostname '{value}' specified in environment variable '{var}'")]
+    InvalidHostNameFromEnv { var: &'static str, value: String },
+
     #[error("Config loading error.")]
     ConfigLoadError(
         #[source]
@@ -206,7 +257,7 @@ pub fn resolve_reflector_auth_token(
         }
     }
 
-    match env::var("MODALITY_AUTH_TOKEN") {
+    match env::var(crate::auth_token::MODALITY_AUTH_TOKEN_ENV_VAR) {
         Ok(val) => {
             tracing::trace!("Loading CLI env context auth token");
             return Ok(decode_auth_token_hex(&val)?);
