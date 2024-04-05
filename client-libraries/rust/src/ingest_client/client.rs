@@ -423,6 +423,7 @@ impl IngestClientCommon {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct IngestStatus {
     pub current_timeline: Option<TimelineId>,
     pub events_received: u64,
