@@ -1,7 +1,7 @@
 //! A one-stop shop for most collector and import
 //! plugins. Automatically handles configuration from a reflector
 //! config file (both running standalone and as a managed child of the
-//! reflector) and environment variables, via the `envy` crate.
+//! reflector) and environment variables, via the [envy](https://docs.rs/envy/latest/envy/) crate.
 //!
 //! All environment variable settings take precedence over config file
 //! settings.
@@ -103,14 +103,14 @@ pub struct Config<T> {
     pub plugin: T,
 
     /// The client connection timeout. This is automatically used when
-    /// you call `connected_and_authenticate`.
+    /// you call [Config::connect_and_authenticate].
     pub client_timeout: Option<Duration>,
 
     /// `timeline.run_id` will be set to this value for all created
     /// timelines.
     pub run_id: String,
 
-    /// If Some(...), `timeline.time_domain` will be set to this value
+    /// If `Some(...)`, `timeline.time_domain` will be set to this value
     /// for all created timelines.
     pub time_domain: Option<String>,
 }
@@ -130,7 +130,7 @@ struct EnvConfig {
 impl<T: Serialize + DeserializeOwned> Config<T> {
     /// Load configuration from config file given in
     /// `MODALITY_REFLECTOR_CONFIG` as well as from other environment
-    /// variables (see module documentation). The returned `Config`
+    /// variables (see module documentation). The returned [Config]
     /// structure represents the fully reconcicled configuration.
     ///
     /// * `env_prefix`: The prefix used for environment variable based
@@ -140,10 +140,10 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
         Self::load_custom(env_prefix, |_, _| None)
     }
 
-    /// Load configuration, like `Config::load`, but allows passing a
+    /// Load configuration, like [Config::load], but allows passing a
     /// `map_env_val` hook.  This can be used to implement
     /// non-standard environment deserialization, for value types
-    /// which aren't correctly handled by the `envy` crate.
+    /// which aren't correctly handled by the [envy](https://docs.rs/envy/latest/envy/) crate.
     ///
     /// * `map_env_val`: A function which will be called for every
     ///   environment variable. If it returns `Some((key, toml_value))`,
@@ -154,6 +154,19 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     ///   file and from the environment. Since this function returns
     ///   environment-provided values, they take precedence over the
     ///   config file.
+    ///
+    ///   For example:
+    ///   ```
+    ///   fn custom_map_val(env_key: &str, env_val: &str) -> Option<(String, TomlValue)> {
+    ///     // look for MY_PLUGIN_PREFIX_STRONGLY_ENCRYPTED_PASSWORD env var
+    ///     if env_key == "STRONGLY_ENCRYPTED_PASSWORD" {
+    ///       ("password".to_string(), TomlValue::String(rot13(env_val)))
+    ///     } else {
+    ///       // All other env vars use default deserialization
+    ///       None
+    ///     }
+    ///   }
+    ///   ```
     pub fn load_custom(
         env_prefix: &str,
         map_env_val: impl Fn(&str, &str) -> Option<(String, TomlValue)>,
@@ -404,7 +417,7 @@ pub struct Client {
 
 impl Client {
     /// Create a new ingest client. Normally, you'll do this by
-    /// calling `Config::connect_and_authenticate(...)`.
+    /// calling [Config::connect_and_authenticate].
     ///
     /// * `client`: The underlying ingest client to use, which must be
     ///   in the `Ready` state (already authenticated).
@@ -449,8 +462,12 @@ impl Client {
 
     /// Set the current timeline to `id`. All subsequent timeline
     /// attrs and events will are attached to the current
-    /// timeline. You must call `switch_timeline` at least once before
-    /// calling `send_timeline_attrs` or `send_event`.
+    /// timeline.
+    ///
+    /// <div class="warning">
+    /// You must call `Client::switch_timeline`  at least once before calling
+    /// `Client::send_timeline_attrs` or `Client::send_event`.
+    /// </div>
     pub async fn switch_timeline(
         &mut self,
         id: TimelineId,
@@ -462,13 +479,13 @@ impl Client {
     /// Set timeline attributes for the current timeline. You typically only need
     /// to do this once for each timeline.
     ///
-    /// <div class="warning">`switch_timeline` must be called at least once before calling `send_timeline_attrs`!</div>
+    /// <div class="warning">`Client::switch_timeline` must be called at least once before calling `Client::send_timeline_attrs`!</div>
     ///
     /// * `name`: The timeline name; sets the `timeline.name` attr.
     ///
     /// * `timeline_attrs`: The attributes to set. While you can use this with anything
-    ///   that implements `IntoIterator`, it's idiomatic to use a literal slice, and to
-    ///   use `into()` to convert values to `AttrVal`:
+    ///   that implements [IntoIterator], it's idiomatic to use a literal slice, and to
+    ///   use `into()` to convert values to [AttrVal]`:
     ///   `client.send_timeline_attrs("tl", [("attr1", 42.into())]).await?;`
     ///
     ///   These keys are automatically normalized, so you prepending "timeline." is optional.
@@ -529,7 +546,7 @@ impl Client {
 
     /// Create an event on the current timeline.
     ///
-    /// <div class="warning">`switch_timeline` must be called at least once before calling `send_event`! </div>
+    /// <div class="warning">`Client::switch_timeline` must be called at least once before calling `Client::send_event`! </div>
     ///
     /// * `name`: The event name; sets the `event.name` attr.
     ///
@@ -541,14 +558,14 @@ impl Client {
     ///   <div class="warning">Avoid sending duplicate `ordering` values for the same timeline.</div>
     ///
     /// * `attrs`: The attributes to attach to the event. While you can use this with anything
-    ///   that implements `IntoIterator`, it's idiomatic to use a literal slice, and to
-    ///   use `into()` to convert values to `AttrVal`:
+    ///   that implements [IntoIterator], it's idiomatic to use a literal slice, and to
+    ///   use `into()` to convert values to [AttrVal]:
     ///   `client.send_event("ev", [("attr1", 42.into())]).await?;`
     ///
     ///   * These keys are automatically normalized, so you prepending "event." is optional.
     ///
     ///   * If "timestamp" or "event.timestamp" is not given here, the
-    ///     current system time (from `SystemTime::now()`) will be
+    ///     current system time (from [SystemTime::now]) will be
     ///     used to populate the `event.timestamp` attr.
     pub async fn send_event(
         &mut self,
