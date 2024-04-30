@@ -19,6 +19,7 @@ modality = [
     "dep:futures",
     "dep:exitcode",
     "dep:nix",
+    "dep:envy",
 ]
 deviant = [
     "modality",
@@ -90,12 +91,16 @@ tracing-serde-wire = { version = "0.1", optional = true }
 tracing-serde-structured = { version = "0.1", optional = true }
 tracing-core = { version = "0.1.27", optional = true }
 duplicate = { version = "0.4.1", optional = true }
+envy = { version = "0.4.2", optional = true }
 
 [target.'cfg(target_family = "unix")'.dependencies]
 nix = { version = "0.26.2", optional = true }
 
 [dev-dependencies]
 proptest = "1.0"
+tempfile = "3"
+serial_test = "3"
+
 # For the examples
 rand = { version = "0.8.5" }
 ctrlc = "3.2.2"
