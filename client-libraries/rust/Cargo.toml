@@ -129,5 +129,10 @@ required-features = ["modality_tracing"]
 name = "simple_multi"
 required-features = ["modality_tracing"]
 
+
+[[example]]
+name = "utils_ingest"
+required-features = ["modality"]
+
 [package.metadata.docs.rs]
 all-features = true
