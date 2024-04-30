@@ -413,6 +413,7 @@ pub struct Client {
 
     additional_timeline_attributes: Vec<(InternedAttrKey, AttrVal)>,
     override_timeline_attributes: Vec<(InternedAttrKey, AttrVal)>,
+    enable_auto_timestamp: bool,
 }
 
 impl Client {
@@ -445,6 +446,7 @@ impl Client {
             event_keys: Default::default(),
             additional_timeline_attributes: Default::default(),
             override_timeline_attributes: Default::default(),
+            enable_auto_timestamp: true,
         };
 
         for kvp in timeline_attr_cfg.additional_timeline_attributes.into_iter() {
@@ -458,6 +460,17 @@ impl Client {
         }
 
         Ok(client)
+    }
+
+    /// Disable automatic `timestamp` attribute generation.
+    ///
+    /// By default, the client adds a `timestamp` attribute to every
+    /// event, unless you have already provided such an attribute in
+    /// the `event_attrs` parameter. This disables that behavior, so
+    /// you'll only get a `timestamp` attribute if you explicitly
+    /// provide one.
+    pub fn disable_auto_timestamp(&mut self) {
+        self.enable_auto_timestamp = false;
     }
 
     /// Set the current timeline to `id`. All subsequent timeline
@@ -565,8 +578,10 @@ impl Client {
     ///   * These keys are automatically normalized, so you prepending "event." is optional.
     ///
     ///   * If "timestamp" or "event.timestamp" is not given here, the
-    ///     current system time (from [SystemTime::now]) will be
-    ///     used to populate the `event.timestamp` attr.
+    ///     current system time (from [SystemTime::now]) will be used
+    ///     to populate the `event.timestamp` attr. If you want to
+    ///     handle timestamps completely manually, you can disable
+    ///     this behavior using [Client::disable_auto_timestamp].
     pub async fn send_event(
         &mut self,
         name: &str,
@@ -579,23 +594,28 @@ impl Client {
         interned_attrs.push((self.prep_event_attr("event.name").await?, name.into()));
 
         for (k, v) in attrs {
-            if k == "timestamp" || k == "event.timestamp" {
-                have_timestamp = true;
+            if self.enable_auto_timestamp {
+                if k == "timestamp" || k == "event.timestamp" {
+                    have_timestamp = true;
+                }
             }
+
             interned_attrs.push((self.prep_event_attr(k).await?, v));
         }
 
-        if !have_timestamp {
-            interned_attrs.push((
-                self.prep_event_attr("event.timestamp").await?,
-                Nanoseconds::from(
-                    SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_nanos() as u64,
-                )
-                .into(),
-            ));
+        if self.enable_auto_timestamp {
+            if !have_timestamp {
+                interned_attrs.push((
+                    self.prep_event_attr("event.timestamp").await?,
+                    Nanoseconds::from(
+                        SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_nanos() as u64,
+                    )
+                    .into(),
+                ));
+            }
         }
 
         self.inner.event(ordering, interned_attrs).await?;
