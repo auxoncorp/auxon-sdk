@@ -124,6 +124,16 @@ pub extern "C" fn modality_ingest_client_connect(
 }
 
 #[no_mangle]
+pub extern "C" fn modality_ingest_client_flush(client: *mut ingest_client) -> c_int {
+    capi_result(|| unsafe {
+        let c = client.as_mut().ok_or(Error::NullPointer)?;
+        let state = c.state.as_authed()?;
+        c.rt.block_on(state.flush())?;
+        Ok(())
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn modality_ingest_client_authenticate_bytes(
     client: *mut ingest_client,
     token: *const u8,

@@ -167,6 +167,9 @@ int main(void)
     err = modality_ingest_client_close_timeline(client);
     assert(err == MODALITY_ERROR_OK);
 
+    err = modality_ingest_client_flush(client);
+    assert(err == MODALITY_ERROR_OK);
+
     modality_ingest_client_free(client);
     modality_ingest_client_free(NULL);
 
