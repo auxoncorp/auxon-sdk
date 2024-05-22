@@ -11,7 +11,8 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 const CONFIG_DIR: &str = "modality-reflector";
 const SYS_CONFIG_BASE_PATH: &str = "/etc";
 
-const MODALITY_HOST_ENV_VAR: &str = "MODALITY_HOST";
+pub const MODALITY_HOST_ENV_VAR: &str = "MODALITY_HOST";
+pub const MODALITY_REFLECTOR_PLUGINS_DIR_ENV_VAR: &str = "MODALITY_REFLECTOR_PLUGINS_DIR";
 
 /// Load a Config and auth token. Either path may be given explicitly; if not, they are loaded from the
 /// default system and user profile directories. (see `load_config` and `resolve_reflector_auth_token`).
@@ -100,6 +101,8 @@ impl ConfigContext {
     /// * `MODALITY_HOST`: Overrides `ingest.protocol_parent_url` and
     ///   `mutation.protocol_parent_url`, to connect to this host, on
     ///   the default port.
+    /// * `MODALITY_REFLECTOR_PLUGINS_DIR`: Overrides `ingest.plugins.plugins_dir` to load plugins
+    ///   from the provided directory.
     pub fn apply_environment_variable_overrides(&mut self) -> Result<(), ExpandedConfigLoadError> {
         if let Some(modality_host) = env_str(MODALITY_HOST_ENV_VAR)? {
             if self.config.ingest.is_none() {
@@ -129,6 +132,14 @@ impl ConfigContext {
                     }
                 })?,
             );
+        }
+
+        if let Some(plugins_dir) = env_str(MODALITY_REFLECTOR_PLUGINS_DIR_ENV_VAR)? {
+            if self.config.plugins.is_none() {
+                self.config.plugins = Some(Default::default());
+            }
+            let plugins = self.config.plugins.as_mut().unwrap();
+            plugins.plugins_dir = Some(plugins_dir.into());
         }
 
         Ok(())
