@@ -594,28 +594,24 @@ impl Client {
         interned_attrs.push((self.prep_event_attr("event.name").await?, name.into()));
 
         for (k, v) in attrs {
-            if self.enable_auto_timestamp {
-                if k == "timestamp" || k == "event.timestamp" {
-                    have_timestamp = true;
-                }
+            if self.enable_auto_timestamp && (k == "timestamp" || k == "event.timestamp") {
+                have_timestamp = true;
             }
 
             interned_attrs.push((self.prep_event_attr(k).await?, v));
         }
 
-        if self.enable_auto_timestamp {
-            if !have_timestamp {
-                interned_attrs.push((
-                    self.prep_event_attr("event.timestamp").await?,
-                    Nanoseconds::from(
-                        SystemTime::now()
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_nanos() as u64,
-                    )
-                    .into(),
-                ));
-            }
+        if self.enable_auto_timestamp && !have_timestamp {
+            interned_attrs.push((
+                self.prep_event_attr("event.timestamp").await?,
+                Nanoseconds::from(
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos() as u64,
+                )
+                .into(),
+            ));
         }
 
         self.inner.event(ordering, interned_attrs).await?;
