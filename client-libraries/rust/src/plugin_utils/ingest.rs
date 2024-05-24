@@ -656,7 +656,7 @@ fn normalize_event_key(s: &str) -> String {
 }
 
 /// Initialize the `tracing` crate with `tracing_subscriber::EnvFilter`. If
-/// `RUST_LOG` is not set, default to setting the current module to 'warn'.
+/// `RUST_LOG` is not set, default to setting the current module to 'info'.
 /// Will panic if the tracing subscriber cannot be initialized.
 #[macro_export]
 macro_rules! init_tracing {
@@ -668,7 +668,7 @@ macro_rules! init_tracing {
                 ::tracing_subscriber::EnvFilter::new(format!(
                     "{}={}",
                     env!("CARGO_PKG_NAME").replace('-', "_"),
-                    ::tracing::Level::WARN
+                    ::tracing::Level::INFO
                 ))
             });
         let builder = builder.with_env_filter(env_filter);
