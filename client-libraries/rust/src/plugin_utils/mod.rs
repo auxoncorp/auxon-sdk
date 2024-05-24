@@ -1,6 +1,7 @@
 //! Various helpful utilities for writing modality-reflector plugins.
 
 pub mod ingest;
+pub mod serde;
 
 use crate::api::types::{AttrKey, AttrVal};
 use crate::auth_token::{self, AuthToken, MODALITY_AUTH_TOKEN_ENV_VAR};
