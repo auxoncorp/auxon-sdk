@@ -594,28 +594,24 @@ impl Client {
         interned_attrs.push((self.prep_event_attr("event.name").await?, name.into()));
 
         for (k, v) in attrs {
-            if self.enable_auto_timestamp {
-                if k == "timestamp" || k == "event.timestamp" {
-                    have_timestamp = true;
-                }
+            if self.enable_auto_timestamp && (k == "timestamp" || k == "event.timestamp") {
+                have_timestamp = true;
             }
 
             interned_attrs.push((self.prep_event_attr(k).await?, v));
         }
 
-        if self.enable_auto_timestamp {
-            if !have_timestamp {
-                interned_attrs.push((
-                    self.prep_event_attr("event.timestamp").await?,
-                    Nanoseconds::from(
-                        SystemTime::now()
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_nanos() as u64,
-                    )
-                    .into(),
-                ));
-            }
+        if self.enable_auto_timestamp && !have_timestamp {
+            interned_attrs.push((
+                self.prep_event_attr("event.timestamp").await?,
+                Nanoseconds::from(
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos() as u64,
+                )
+                .into(),
+            ));
         }
 
         self.inner.event(ordering, interned_attrs).await?;
@@ -656,7 +652,7 @@ fn normalize_event_key(s: &str) -> String {
 }
 
 /// Initialize the `tracing` crate with `tracing_subscriber::EnvFilter`. If
-/// `RUST_LOG` is not set, default to setting the current module to 'warn'.
+/// `RUST_LOG` is not set, default to setting the current module to 'info'.
 /// Will panic if the tracing subscriber cannot be initialized.
 #[macro_export]
 macro_rules! init_tracing {
@@ -668,7 +664,7 @@ macro_rules! init_tracing {
                 ::tracing_subscriber::EnvFilter::new(format!(
                     "{}={}",
                     env!("CARGO_PKG_NAME").replace('-', "_"),
-                    ::tracing::Level::WARN
+                    ::tracing::Level::INFO
                 ))
             });
         let builder = builder.with_env_filter(env_filter);
