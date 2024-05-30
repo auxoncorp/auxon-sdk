@@ -7,7 +7,7 @@ use tokio::{
     net::{TcpSocket, TcpStream},
     time::timeout,
 };
-use tokio_native_tls::TlsStream;
+use tokio_rustls::client::TlsStream;
 use url::Url;
 
 pub struct IngestClient<S> {
@@ -124,14 +124,13 @@ impl IngestConnection {
         })?;
 
         if let Some(tls_mode) = endpoint.tls_mode {
-            let cx = native_tls::TlsConnector::builder()
-                .danger_accept_invalid_certs(match tls_mode {
-                    TlsMode::Secure => false,
-                    TlsMode::Insecure => true,
-                })
-                .build()?;
-            let cx = tokio_native_tls::TlsConnector::from(cx);
-            let stream = cx.connect(&endpoint.cert_domain, stream).await?;
+            let config = match tls_mode {
+                TlsMode::Insecure => crate::tls::INSECURE.clone(),
+                TlsMode::Secure => crate::tls::SECURE.clone(),
+            };
+
+            let cx = tokio_rustls::TlsConnector::from(config);
+            let stream = cx.connect(endpoint.cert_domain.try_into()?, stream).await?;
             Ok(IngestConnection::Tls(stream))
         } else {
             Ok(IngestConnection::Tcp(stream))
@@ -446,8 +445,11 @@ pub enum IngestClientInitializationError {
         remote_addr: SocketAddr,
     },
 
-    #[error("TLS Error")]
-    Tls(#[from] native_tls::Error),
+    #[error(transparent)]
+    InvalidDnsName(#[from] tokio_rustls::rustls::pki_types::InvalidDnsNameError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
     #[error("Client local address parsing failed.")]
     ClientLocalAddrParse(#[from] std::net::AddrParseError),

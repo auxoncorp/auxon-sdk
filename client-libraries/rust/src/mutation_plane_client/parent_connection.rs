@@ -3,7 +3,8 @@ use std::net::SocketAddr;
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpSocket, TcpStream};
-use tokio_native_tls::TlsStream;
+use tokio_rustls::client::TlsStream;
+use tokio_rustls::TlsConnector;
 use url::Url;
 
 #[derive(Copy, Clone)]
@@ -52,14 +53,12 @@ impl MutationParentConnection {
         })?;
 
         if let Some(tls_mode) = endpoint.tls_mode {
-            let cx = native_tls::TlsConnector::builder()
-                .danger_accept_invalid_certs(match tls_mode {
-                    TlsMode::Secure => false,
-                    TlsMode::Insecure => true,
-                })
-                .build()?;
-            let cx = tokio_native_tls::TlsConnector::from(cx);
-            let stream = cx.connect(&endpoint.cert_domain, stream).await?;
+            let config = match tls_mode {
+                TlsMode::Secure => crate::tls::SECURE.clone(),
+                TlsMode::Insecure => crate::tls::INSECURE.clone(),
+            };
+            let cx = TlsConnector::from(config);
+            let stream = cx.connect(endpoint.cert_domain.try_into()?, stream).await?;
             Ok(MutationParentConnection::Tls(stream))
         } else {
             Ok(MutationParentConnection::Tcp(stream))
@@ -185,8 +184,11 @@ pub enum MutationParentClientInitializationError {
         remote_addr: SocketAddr,
     },
 
-    #[error("TLS Error")]
-    Tls(#[from] native_tls::Error),
+    #[error(transparent)]
+    InvalidDnsName(#[from] tokio_rustls::rustls::pki_types::InvalidDnsNameError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
     #[error("Client local address parsing failed.")]
     ClientLocalAddrParse(#[from] std::net::AddrParseError),

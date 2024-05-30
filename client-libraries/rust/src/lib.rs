@@ -22,3 +22,6 @@ pub mod mutator_server;
 
 #[cfg(feature = "modality_tracing")]
 pub mod tracing;
+
+#[cfg(feature = "modality")]
+pub(crate) mod tls;
