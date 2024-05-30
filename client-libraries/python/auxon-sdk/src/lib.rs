@@ -38,7 +38,7 @@ struct ConfigField {
 }
 
 impl ConfigField {
-    fn new(python_attr_name: String, ty: ConfigFieldType, env_prefix: &str) -> Self {
+    fn new(python_attr_name: String, ty: ConfigFieldType) -> Self {
         Self {
             toml_key: python_attr_name.to_lowercase().replace("_", "-"),
             env_var_name: python_attr_name.to_uppercase(),
@@ -105,25 +105,22 @@ impl IngestPluginConfig {
 
         let config_fields: Vec<ConfigField> = config_fields_name_and_type
             .into_iter()
-            .map(|(name, ty)| Ok(ConfigField::new(name, ty.as_str().try_into()?, env_prefix)))
-            .collect::<Result<_, PyErr>>()?;
+            .map(|(name, ty)| Ok(ConfigField::new(name, ty.as_str().try_into()?)))
 
-        dbg!(&config_fields);
+            .collect::<Result<_, PyErr>>()?;
 
         let config = auxon_sdk::plugin_utils::ingest::Config::<toml::value::Table>::load_custom(
             env_prefix,
             |env_key, env_val| {
-                dbg!(&env_key, &env_val);
                 if let Some(field) = config_fields.iter().find(|f| f.env_var_name == env_key) {
                     let parsed_val = field.ty.parse_env(env_val)?;
-                    Some(dbg!((field.toml_key.clone(),parsed_val)))
+                    Some((field.toml_key.clone(), parsed_val))
                 } else {
                     None
                 }
             },
         )
         .map_err(SdkError::from)?;
-        dbg!(&config);
 
         // build an instance of config_dataclass from the toml table in config.plugin
         let plugin_config = config_dataclass.call0()?; // dataclass constructor
@@ -138,8 +135,6 @@ impl IngestPluginConfig {
             }
             Result::<(), PyErr>::Ok(())
         })?;
-
-        dbg!(&plugin_config);
 
         Ok(Self {
             config,

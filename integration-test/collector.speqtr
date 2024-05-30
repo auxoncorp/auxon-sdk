@@ -1,0 +1,5 @@
+behavior "The python example collector worked"
+   nominal case "A tick was logged"
+       tick@counter(exists(_.num))
+   end
+end
