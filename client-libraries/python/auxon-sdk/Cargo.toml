@@ -1,0 +1,16 @@
+[package]
+name = "auxon-sdk-python"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "auxon_sdk"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+auxon-sdk = { path = "../../rust/", features = ["modality"] }
+serde = "1"
+tokio = "1"
+pyo3-log = "0.10"
+toml = "0.5.1"

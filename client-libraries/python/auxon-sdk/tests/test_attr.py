@@ -1,4 +1,5 @@
-from modality.attr import format_json_attr_val
+from auxon_sdk.attr import format_json_attr_val
+
 def test_format_json_attr_val():
 
     f = format_json_attr_val({"TimelineId": "3cd8734a-1747-4cfd-a305-2e8b3aa41c8f"})

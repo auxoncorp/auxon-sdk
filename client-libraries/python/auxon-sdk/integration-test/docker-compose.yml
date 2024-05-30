@@ -1,0 +1,104 @@
+volumes:
+  modalityd_data:
+  modality_client_config:
+  dlt_tmp:
+    
+services:
+  modalityd:
+    image: ghcr.io/auxoncorp/modalityd:latest
+    volumes: [modalityd_data:/data-dir]
+    environment:
+      MODALITY_LICENSE_KEY: ${MODALITY_LICENSE_KEY}
+      MODALITY_ACCEPT_EULA: Y
+      NO_TLS: Y
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:14181/v1/alive"]
+      start_period: 2s
+      start_interval: 1s
+
+  modality-user-setup:
+    image: ghcr.io/auxoncorp/modality-reflector:latest
+    volumes: [modality_client_config:/root/.config/modality_cli]
+    depends_on: { modalityd: { condition: service_healthy } } 
+    restart: no
+    environment: { MODALITY_URL: http://modalityd:14181/v1 }
+    entrypoint: ["bash", "-c", "/modality user create test "]
+
+  dlt-daemon:
+    build:
+      dockerfile_inline: |
+        FROM debian:bookworm-slim
+        RUN apt-get update && apt-get install dlt-daemon -y
+        EXPOSE 3490
+        CMD /usr/bin/dlt-daemon
+    volumes: [dlt_tmp:/tmp]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo -n > /dev/tcp/127.0.0.1/3490"]
+      start_period: 2s
+      start_interval: 1s
+    stop_grace_period: 0s
+    
+  reflector:
+    build:
+      context: ..
+      dockerfile_inline: |
+        FROM modality-dlt-build:latest
+        FROM ghcr.io/auxoncorp/modality-reflector:latest
+        COPY --from=0 /plugin-src/target/release/modality-dlt-importer /modality-reflector-plugins/importers/
+        COPY --from=0 /plugin-src/target/release/modality-dlt-collector /modality-reflector-plugins/collectors/
+    depends_on:
+      modality-user-setup: { condition: service_completed_successfully }
+      modalityd: { condition: service_healthy }
+      dlt-daemon: { condition: service_healthy }  
+    volumes: [modality_client_config:/root/.config/modality_cli]
+    environment:
+      MODALITY_LICENSE_KEY: ${MODALITY_LICENSE_KEY}
+      MODALITY_ACCEPT_EULA: Y
+      INGEST_PROTOCOL_PARENT_URL: modality-ingest://modalityd
+      MUTATION_PROTOCOL_PARENT_URL: modality-mutation://modalityd
+      MODALITY_DLT_HOST: dlt-daemon
+      REFLECTOR_OPTS: --collector dlt
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo -n > /dev/tcp/127.0.0.1/14182"]
+      start_period: 2s
+      start_interval: 1s
+    
+  test-collector:
+    profiles:
+      - test-collector
+    build:
+      dockerfile_inline: |
+        FROM ghcr.io/auxoncorp/modality-reflector:latest
+        RUN apt-get update && apt-get install dlt-tools libdlt-examples -y
+        COPY *.sh /
+        COPY *.speqtr /
+        ENTRYPOINT []
+        CMD /test-collector.sh
+    depends_on: [reflector, dlt-daemon]
+    volumes:
+      - modality_client_config:/root/.config/modality_cli
+      - dlt_tmp:/tmp
+    environment: { MODALITY_URL: http://modalityd:14181/v1 }
+    restart: no
+
+  test-import:
+    profiles:
+      - test-import
+    build:
+      dockerfile_inline: |
+        FROM modality-dlt-build:latest
+        FROM ghcr.io/auxoncorp/modality-reflector:latest
+        COPY --from=0 /plugin-src/target/release/modality-dlt-importer /modality-reflector-plugins/importers/
+        COPY --from=0 /plugin-src/target/release/modality-dlt-collector /modality-reflector-plugins/collectors/
+        COPY *.sh /
+        COPY *.speqtr /
+        COPY test-data/* /
+        ENTRYPOINT []
+        CMD /test-import.sh
+    volumes:
+      - modality_client_config:/root/.config/modality_cli
+      - dlt_tmp:/tmp
+    environment:
+      MODALITY_URL: http://modalityd:14181/v1
+      INGEST_PROTOCOL_PARENT_URL: modality-ingest://modalityd
+    restart: no

@@ -1,7 +1,7 @@
-import modality.client
+import auxon_sdk.client
 
 def test_events_data_frame_url_test():
-    m = modality.client.Modality()
+    m = auxon_sdk.client.Modality()
 
     u = m._events_data_frame_url()
     assert u == "http://localhost:14181/v1/inspection/events_data_frame"
@@ -34,7 +34,7 @@ def test_events_data_frame_url_test():
     assert u == "http://localhost:14181/v1/inspection/events_data_frame?include_attrs=event.a&include_attrs=event.b"
 
 def test_event_value_distributions_data_frame_url_test():
-    m = modality.client.Modality()
+    m = auxon_sdk.client.Modality()
 
     u = m._event_value_distributions_data_frame_url()
     assert u == "http://localhost:14181/v1/inspection/event_value_distributions_data_frame"
