@@ -76,7 +76,10 @@
 use crate::{
     api::{AttrVal, Nanoseconds, TimelineId},
     auth_token::AuthToken,
-    ingest_client::{dynamic::DynamicIngestClient, IngestClient, ReadyState},
+    ingest_client::{
+        dynamic::{DynamicIngestClient, DynamicIngestError},
+        IngestClient, IngestStatus, ReadyState,
+    },
     ingest_protocol::InternedAttrKey,
     reflector_config::{
         AttrKeyEqValuePair, ConfigLoadError, SemanticErrorExplanation, TomlValue, TopLevelIngest,
@@ -285,13 +288,13 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
         .authenticate(auth_token.into())
         .await?;
 
-        Client::new(
+        Ok(Client::new(
             client,
             self.ingest.timeline_attributes.clone(),
             Some(self.run_id.clone()),
             self.time_domain.clone(),
         )
-        .await
+        .await?)
     }
 }
 
@@ -437,7 +440,7 @@ impl Client {
         timeline_attr_cfg: crate::reflector_config::TimelineAttributes,
         run_id: Option<String>,
         time_domain: Option<String>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self, DynamicIngestError> {
         let mut client = Self {
             inner: client.into(),
             run_id,
@@ -481,10 +484,7 @@ impl Client {
     /// You must call `Client::switch_timeline`  at least once before calling
     /// `Client::send_timeline_attrs` or `Client::send_event`.
     /// </div>
-    pub async fn switch_timeline(
-        &mut self,
-        id: TimelineId,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn switch_timeline(&mut self, id: TimelineId) -> Result<(), DynamicIngestError> {
         self.inner.open_timeline(id).await?;
         Ok(())
     }
@@ -506,7 +506,7 @@ impl Client {
         &mut self,
         name: &str,
         timeline_attrs: impl IntoIterator<Item = (&str, AttrVal)>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), DynamicIngestError> {
         let mut interned_attrs =
             vec![(self.prep_timeline_attr("timeline.name").await?, name.into())];
 
@@ -541,10 +541,7 @@ impl Client {
         Ok(())
     }
 
-    async fn prep_timeline_attr(
-        &mut self,
-        k: &str,
-    ) -> Result<InternedAttrKey, Box<dyn std::error::Error>> {
+    async fn prep_timeline_attr(&mut self, k: &str) -> Result<InternedAttrKey, DynamicIngestError> {
         let key = normalize_timeline_key(k);
         let int_key = if let Some(ik) = self.timeline_keys.get(&key) {
             *ik
@@ -587,7 +584,7 @@ impl Client {
         name: &str,
         ordering: u128,
         attrs: impl IntoIterator<Item = (&str, AttrVal)>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), DynamicIngestError> {
         let mut interned_attrs = Vec::new();
         let mut have_timestamp = false;
 
@@ -618,10 +615,16 @@ impl Client {
         Ok(())
     }
 
-    async fn prep_event_attr(
-        &mut self,
-        k: &str,
-    ) -> Result<InternedAttrKey, Box<dyn std::error::Error>> {
+    pub async fn flush(&mut self) -> Result<(), DynamicIngestError> {
+        self.inner.flush().await?;
+        Ok(())
+    }
+
+    pub async fn status(&mut self) -> Result<IngestStatus, DynamicIngestError> {
+        Ok(self.inner.status().await?)
+    }
+
+    async fn prep_event_attr(&mut self, k: &str) -> Result<InternedAttrKey, DynamicIngestError> {
         let key = normalize_event_key(k);
         let int_key = if let Some(ik) = self.event_keys.get(&key) {
             *ik
