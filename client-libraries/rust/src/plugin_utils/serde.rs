@@ -9,7 +9,8 @@
 ///
 /// Example usage:
 ///
-/// ```
+/// ```no_run
+/// use serde::{Deserialize, Serialize};
 /// #[derive(Serialize, Deserialize)]
 /// pub struct CollectorConfig {
 ///     #[serde(flatten)]
@@ -18,7 +19,7 @@
 ///
 /// #[derive(Serialize, Deserialize)]
 /// pub struct CommonConfig {
-///     #[serde(Default, deserialize_with="auxon_sdk::plugin_utils::serde::from_str")]
+///     #[serde(default, deserialize_with="auxon_sdk::plugin_utils::serde::from_str")]
 ///     pub some_val: Option<bool>
 /// }
 /// ```

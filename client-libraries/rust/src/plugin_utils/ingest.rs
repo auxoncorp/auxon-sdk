@@ -43,33 +43,38 @@
 //!   names.
 //!
 //! # Example
-//! ```
+//! ```no_run
+//! use auxon_sdk::init_tracing;
 //! use auxon_sdk::api::TimelineId;
-//! use auxon_sdk::plugin_utils::ingest::{Config, init_tracing};
+//! use auxon_sdk::plugin_utils::ingest::Config;
+//! use serde::{Serialize, Deserialize};
 //!
 //! #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 //! pub struct MyConfig {
-//!     # This can be set with the MY_PLUGIN_SETTING environment variable
+//!     /// This can be set with the MY_PLUGIN_SETTING environment variable
 //!     pub setting: Option<u32>,
 //! }
 //!
 //! #[tokio::main]
-//! async fn main() -> Box<dyn std::error::Error> {
+//! async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 //!   init_tracing!();
 //!   let cfg = Config::<MyConfig>::load("MY_PLUGIN_")?;
 //!   let mut client = cfg.connect_and_authenticate().await?;
 //!   
 //!   let timeline_id = TimelineId::allocate();
 //!   client.switch_timeline(timeline_id).await?;
-//!   client.send_timeline_attrs("tl", [
-//!     ("attr1", 42.into())
-//!     ("attr2", "hello".into())
+//!   client.send_timeline_attrs("tl", vec![
+//!     ("attr1", 42.into()),
+//!     ("attr2", "hello".into()),
 //!   ]).await?;
 //!
-//!   client.send_event("ev", [
-//!     ("attr1", 42.into())
-//!     ("attr2", "hello".into())
+//!  let ordering = 1;
+//!   client.send_event("ev", ordering, vec![
+//!     ("attr1", 42.into()),
+//!     ("attr2", "hello".into()),
 //!   ]).await?;
+//!
+//!   Ok(())
 //! }
 //! ```
 
@@ -139,7 +144,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     /// * `env_prefix`: The prefix used for environment variable based
     ///   settings for members of the configuration struct (type
     ///   param `T`).
-    pub fn load(env_prefix: &str) -> Result<Config<T>, Box<dyn std::error::Error>> {
+    pub fn load(env_prefix: &str) -> Result<Config<T>, Box<dyn std::error::Error + Send + Sync>> {
         Self::load_custom(env_prefix, |_, _| None)
     }
 
@@ -159,11 +164,11 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     ///   config file.
     ///
     ///   For example:
-    ///   ```
-    ///   fn custom_map_val(env_key: &str, env_val: &str) -> Option<(String, TomlValue)> {
+    ///   ```no_run
+    ///   fn custom_map_val(env_key: &str, env_val: &str) -> Option<(String, toml::Value)> {
     ///     // look for MY_PLUGIN_PREFIX_STRONGLY_ENCRYPTED_PASSWORD env var
     ///     if env_key == "STRONGLY_ENCRYPTED_PASSWORD" {
-    ///       ("password".to_string(), TomlValue::String(rot13(env_val)))
+    ///       Some(("password".to_string(), toml::Value::String(env_val.to_owned())))
     ///     } else {
     ///       // All other env vars use default deserialization
     ///       None
@@ -173,7 +178,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     pub fn load_custom(
         env_prefix: &str,
         map_env_val: impl Fn(&str, &str) -> Option<(String, TomlValue)>,
-    ) -> Result<Config<T>, Box<dyn std::error::Error>> {
+    ) -> Result<Config<T>, Box<dyn std::error::Error + Send + Sync>> {
         let mut cfg = None;
 
         // load from MODALITY_REFLECTOR_CONFIG
@@ -268,7 +273,9 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
 
     /// Connect to the configured Modality backend for ingest,
     /// authenticate, and return a high-level ingest client.
-    pub async fn connect_and_authenticate(&self) -> Result<Client, Box<dyn std::error::Error>> {
+    pub async fn connect_and_authenticate(
+        &self,
+    ) -> Result<Client, Box<dyn std::error::Error + Send + Sync>> {
         let protocol_parent_url = if let Some(url) = &self.ingest.protocol_parent_url {
             url.clone()
         } else {
@@ -305,7 +312,7 @@ fn merge_plugin_config_from_env<T: Serialize + DeserializeOwned>(
     env_prefix: &str,
     map_env_val: impl Fn(&str, &str) -> Option<(String, TomlValue)>,
     plugin_toml: &mut BTreeMap<String, TomlValue>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut auto_vars = vec![];
     for (k, v) in env::vars() {
         let Some(k) = k.strip_prefix(env_prefix) else {
@@ -351,7 +358,7 @@ struct IngestEnvOverrides {
 
 fn override_ingest_config_from_env(
     ingest: &mut TopLevelIngest,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ingest_env_overrides = envy::from_env::<IngestEnvOverrides>()?;
     if let Some(u) = ingest_env_overrides.modality_reflector_protocol_parent_url {
         ingest.protocol_parent_url = Some(u);
@@ -695,12 +702,12 @@ struct AliasablePluginFileStem {
 
 impl AliasablePluginFileStem {
     #[cfg(not(test))]
-    pub fn for_current_process() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn for_current_process() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         Self::for_path(std::env::current_exe()?)
     }
 
     #[cfg(test)]
-    pub fn for_current_process() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn for_current_process() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         if let Ok(path) = std::env::var("TEST_CURRENT_EXE_PATH") {
             Self::for_path(path)
         } else {
@@ -708,7 +715,7 @@ impl AliasablePluginFileStem {
         }
     }
 
-    pub fn for_path(p: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn for_path(p: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = p.as_ref().to_owned();
         let filename = path
             .file_name()
