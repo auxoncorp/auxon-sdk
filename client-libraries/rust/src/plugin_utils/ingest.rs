@@ -145,7 +145,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     ///   settings for members of the configuration struct (type
     ///   param `T`).
     pub fn load(env_prefix: &str) -> Result<Config<T>, Box<dyn std::error::Error + Send + Sync>> {
-        Self::load_custom(env_prefix, |_, _| None)
+        Self::load_custom(env_prefix, |_, _| Ok(None))
     }
 
     /// Load configuration, like [Config::load], but allows passing a
@@ -154,7 +154,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     /// which aren't correctly handled by the [envy](https://docs.rs/envy/latest/envy/) crate.
     ///
     /// * `map_env_val`: A function which will be called for every
-    ///   environment variable. If it returns `Some((key, toml_value))`,
+    ///   environment variable. If it returns `Ok(Some((key, toml_value)))`,
     ///   a corresponding entry will be created in the
     ///   `metadata` toml table, which is then deserialized to the
     ///   custom config structure (type param `T`). This intermediate
@@ -165,19 +165,26 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     ///
     ///   For example:
     ///   ```no_run
-    ///   fn custom_map_val(env_key: &str, env_val: &str) -> Option<(String, toml::Value)> {
+    ///   fn custom_map_val(env_key: &str, env_val: &str) -> Result<Option<(String, toml::Value)>,
+    ///   Box<dyn std::error::Error + Send + Sync>> {
     ///     // look for MY_PLUGIN_PREFIX_STRONGLY_ENCRYPTED_PASSWORD env var
     ///     if env_key == "STRONGLY_ENCRYPTED_PASSWORD" {
-    ///       Some(("password".to_string(), toml::Value::String(env_val.to_owned())))
+    ///       Ok(Some(("password".to_string(), toml::Value::String(env_val.to_owned()))))
     ///     } else {
     ///       // All other env vars use default deserialization
-    ///       None
+    ///       Ok(None)
     ///     }
     ///   }
     ///   ```
     pub fn load_custom(
         env_prefix: &str,
-        map_env_val: impl Fn(&str, &str) -> Option<(String, TomlValue)>,
+        map_env_val: impl Fn(
+            &str,
+            &str,
+        ) -> Result<
+            Option<(String, TomlValue)>,
+            Box<dyn std::error::Error + Send + Sync>,
+        >,
     ) -> Result<Config<T>, Box<dyn std::error::Error + Send + Sync>> {
         let mut cfg = None;
 
@@ -310,7 +317,13 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
 /// be an empty table, if no config file was given).
 fn merge_plugin_config_from_env<T: Serialize + DeserializeOwned>(
     env_prefix: &str,
-    map_env_val: impl Fn(&str, &str) -> Option<(String, TomlValue)>,
+    map_env_val: impl Fn(
+        &str,
+        &str,
+    ) -> Result<
+        Option<(String, TomlValue)>,
+        Box<dyn std::error::Error + Send + Sync>,
+    >,
     plugin_toml: &mut BTreeMap<String, TomlValue>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut auto_vars = vec![];
@@ -319,7 +332,7 @@ fn merge_plugin_config_from_env<T: Serialize + DeserializeOwned>(
             continue;
         };
 
-        if let Some((k, toml_val)) = map_env_val(k, &v) {
+        if let Some((k, toml_val)) = map_env_val(k, &v)? {
             plugin_toml.insert(k.to_string(), toml_val);
             continue;
         } else {
