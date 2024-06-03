@@ -684,6 +684,18 @@ macro_rules! init_tracing {
             .try_init()
             .expect("Unable to initialize tracing subscriber");
     };
+    ($env_filter:expr) => {
+        let builder = ::tracing_subscriber::fmt::Subscriber::builder();
+        let env_filter = ::std::env::var(tracing_subscriber::EnvFilter::DEFAULT_ENV)
+            .map(::tracing_subscriber::EnvFilter::new)
+            .unwrap_or_else(|_| $env_filter);
+        let builder = builder.with_env_filter(env_filter);
+        let subscriber = builder.finish();
+        use ::tracing_subscriber::util::SubscriberInitExt;
+        subscriber
+            .try_init()
+            .expect("Unable to initialize tracing subscriber");
+    };
 }
 
 /// Plugin file stem wrapper to allow aliasing (i.e. modality-foo-importer can be refered to with
