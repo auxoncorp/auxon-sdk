@@ -21,12 +21,7 @@ modality = [
     "dep:nix",
     "dep:envy",
 ]
-deviant = [
-    "modality",
-    "dep:async-trait",
-    "dep:tokio-util",
-    "dep:minicbor-io",
-]
+deviant = ["modality", "dep:async-trait", "dep:tokio-util", "dep:minicbor-io"]
 mutator_server = [
     "modality",
     "deviant",
@@ -51,39 +46,78 @@ modality_tracing = [
 ]
 test_support = ["dep:proptest"]
 schemars = ["dep:schemars"]
+pyo3 = ["dep:pyo3"]
 
 [dependencies]
 hex = "0.4"
 thiserror = "1"
 dirs = "4.0.0"
-uuid = { version = "1", default-features = false, features = ["std", "v4", "v5", "serde"] }
+uuid = { version = "1", default-features = false, features = [
+    "std",
+    "v4",
+    "v5",
+    "serde",
+] }
 ordered-float = "3.7.0"
 toml = "0.5"
-serde = { version = "1.0", features=["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 url = { version = "2.1", features = ["serde"] }
 tracing = "0.1"
 regex = "1.6"
 lazy_static = "1.4"
 
-proptest = { version = "1.0", default-features = false, features = ["std"], optional = true }
-schemars = { version = "0.8.8", features=["uuid1", "chrono"], optional = true }
+proptest = { version = "1.0", default-features = false, features = [
+    "std",
+], optional = true }
+schemars = { version = "0.8.8", features = [
+    "uuid1",
+    "chrono",
+], optional = true }
 minicbor = { version = "0.13.1", features = ["std", "derive"], optional = true }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "tracing", "net", "signal", "net", "io-util", "fs"], optional = true }
+tokio = { version = "1", features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "tracing",
+    "net",
+    "signal",
+    "net",
+    "io-util",
+    "fs",
+], optional = true }
 tokio-rustls = { version = "0.26", optional = true }
-clap = { version = "4.3", features = ["color", "derive", "env"], optional = true }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"], optional = true }
+clap = { version = "4.3", features = [
+    "color",
+    "derive",
+    "env",
+], optional = true }
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "tracing-log",
+], optional = true }
 futures = { version = "0.3.21", optional = true }
 exitcode = { version = "1.1.2", optional = true }
 async-trait = { version = "0.1.52", optional = true }
 tokio-util = { version = "0.7.3", features = ["compat"], optional = true }
 minicbor-io = { version = "0.8", features = ["async-io"], optional = true }
 axum = { version = "0.6", optional = true }
-utoipa = { version = "3.0", features = ["uuid", "axum_extras"], optional = true }
+utoipa = { version = "3.0", features = [
+    "uuid",
+    "axum_extras",
+], optional = true }
 utoipa-swagger-ui = { version = "3.0", features = ["axum"], optional = true }
 parking_lot = { version = "0.12.0", optional = true }
 percent-encoding = { version = "2.1.0", optional = true }
-reqwest = { version = "0.11", default-features = false, features = ["blocking", "stream", "json", "rustls-tls"], optional = true }
-serde_json = { version = "1.0" , features = ["float_roundtrip"], optional = true }
+reqwest = { version = "0.11", default-features = false, features = [
+    "blocking",
+    "stream",
+    "json",
+    "rustls-tls",
+], optional = true }
+serde_json = { version = "1.0", features = [
+    "float_roundtrip",
+], optional = true }
 anyhow = { version = "1", optional = true }
 once_cell = { version = "1.12.0", optional = true }
 tracing-serde-wire = { version = "0.1", optional = true }
@@ -92,6 +126,8 @@ tracing-core = { version = "0.1.27", optional = true }
 duplicate = { version = "0.4.1", optional = true }
 envy = { version = "0.4.2", optional = true }
 rustls-native-certs = { version = "0.7", optional = true }
+
+pyo3 = { version = "0.21", optional = true }
 
 [target.'cfg(target_family = "unix")'.dependencies]
 nix = { version = "0.26.2", optional = true }

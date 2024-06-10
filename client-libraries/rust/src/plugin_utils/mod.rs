@@ -1,6 +1,8 @@
 //! Various helpful utilities for writing modality-reflector plugins.
 
+pub mod config;
 pub mod ingest;
+pub mod mutation;
 pub mod serde;
 
 use crate::api::types::{AttrKey, AttrVal};
@@ -36,6 +38,7 @@ pub const CLI_TEMPLATE: &str = "\
 /// or a CTRL+C style signal.
 ///
 /// Returns the process's desired exit code.
+#[deprecated]
 pub fn server_main<Opts, ServerFuture, ServerConstructor>(
     server_constructor: ServerConstructor,
 ) -> i32
@@ -379,4 +382,41 @@ pub fn merge_timeline_attrs(
         let _ = timeline_attrs.insert(ensure_timeline_prefix(kvp.0), kvp.1);
     }
     timeline_attrs
+}
+
+/// Initialize the `tracing` crate with `tracing_subscriber::EnvFilter`. If
+/// `RUST_LOG` is not set, default to setting the current module to 'info'.
+/// Will panic if the tracing subscriber cannot be initialized.
+#[macro_export]
+macro_rules! init_tracing {
+    () => {
+        let builder = ::tracing_subscriber::fmt::Subscriber::builder();
+        let env_filter = ::std::env::var(tracing_subscriber::EnvFilter::DEFAULT_ENV)
+            .map(::tracing_subscriber::EnvFilter::new)
+            .unwrap_or_else(|_| {
+                ::tracing_subscriber::EnvFilter::new(format!(
+                    "{}={}",
+                    env!("CARGO_PKG_NAME").replace('-', "_"),
+                    ::tracing::Level::INFO
+                ))
+            });
+        let builder = builder.with_env_filter(env_filter);
+        let subscriber = builder.finish();
+        use ::tracing_subscriber::util::SubscriberInitExt;
+        subscriber
+            .try_init()
+            .expect("Unable to initialize tracing subscriber");
+    };
+    ($env_filter:expr) => {
+        let builder = ::tracing_subscriber::fmt::Subscriber::builder();
+        let env_filter = ::std::env::var(tracing_subscriber::EnvFilter::DEFAULT_ENV)
+            .map(::tracing_subscriber::EnvFilter::new)
+            .unwrap_or_else(|_| $env_filter);
+        let builder = builder.with_env_filter(env_filter);
+        let subscriber = builder.finish();
+        use ::tracing_subscriber::util::SubscriberInitExt;
+        subscriber
+            .try_init()
+            .expect("Unable to initialize tracing subscriber");
+    };
 }

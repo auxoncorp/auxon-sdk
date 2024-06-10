@@ -18,22 +18,25 @@ class SimpleConfig(BaseConfig):
     bool_val: bool = None
 
 def test_basic_ingest():
-    cfg = auxon.IngestPluginConfig(SimpleConfig, "TEST_")
-    print(cfg.plugin)
-
-    c = cfg.connect_and_authenticate()
+    cfg = auxon.PluginConfig(SimpleConfig, "TEST_")
+    c = cfg.connect_and_authenticate_ingest()
 
     assert cfg.plugin.int_val == None
     assert cfg.plugin.str_val == None
 
-    tl = auxon.TimelineId()
+    tl = auxon.TimelineId.allocate()
     c.switch_timeline(tl)
     c.send_timeline_attrs("test", {"a": 1, "b": "yay"})
     c.send_event("ev1", 1, {"q": 1, "r": "whee"})
     c.send_event("ev2", 2, {"q": 1, "r": "yo"})
 
+    c.flush()
+    status = c.status()
+    assert status.current_timeline == tl
+    assert status.events_received == 2
+
 def test_env_var_config():
-    cfg = auxon.IngestPluginConfig(SimpleConfig, "TEST_")
+    cfg = auxon.PluginConfig(SimpleConfig, "TEST_")
 
     assert cfg.plugin.str_val == None
     assert cfg.plugin.int_val == None
@@ -48,7 +51,7 @@ def test_env_var_config():
     os.environ["TEST_INT_VAL"] = "42"
     os.environ["TEST_FLOAT_VAL"] = "3.14"
     os.environ["TEST_BOOL_VAL"] = "true"
-    cfg = auxon.IngestPluginConfig(SimpleConfig, "TEST_")
+    cfg = auxon.PluginConfig(SimpleConfig, "TEST_")
 
     assert cfg.plugin.str_val == "str"
     assert cfg.plugin.int_val == 42
@@ -63,7 +66,7 @@ def test_env_var_config():
     os.environ["TEST_BASE_INT_VAL"] = "42"
     os.environ["TEST_BASE_FLOAT_VAL"] = "3.14"
     os.environ["TEST_BASE_BOOL_VAL"] = "true"
-    cfg = auxon.IngestPluginConfig(SimpleConfig, "TEST_")
+    cfg = auxon.PluginConfig(SimpleConfig, "TEST_")
 
     assert cfg.plugin.str_val == "str"
     assert cfg.plugin.int_val == 42

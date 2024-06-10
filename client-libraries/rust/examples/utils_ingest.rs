@@ -10,7 +10,7 @@ struct Config {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     auxon_sdk::init_tracing!();
     let cfg = auxon_sdk::plugin_utils::ingest::Config::<Config>::load("EXAMPLE_")?;
-    let mut client = cfg.connect_and_authenticate().await?;
+    let mut client = cfg.connect_and_authenticate_ingest().await?;
 
     let tl = auxon_sdk::api::TimelineId::allocate();
     client.switch_timeline(tl).await?;

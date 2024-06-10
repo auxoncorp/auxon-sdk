@@ -344,7 +344,6 @@ impl IngestClient<BoundTimelineState> {
         self.common.event(ordering, attrs).await
     }
 
-    // TODO make a blocking_flush as well, good for tests
     pub async fn flush(&mut self) -> Result<(), IngestError> {
         self.common.flush().await
     }
@@ -414,7 +413,6 @@ impl IngestClientCommon {
         Ok(())
     }
 
-    // TODO make a blocking_flush as well, good for tests
     pub async fn flush(&mut self) -> Result<(), IngestError> {
         self.send(&IngestMessage::Flush {}).await?;
 
@@ -423,11 +421,36 @@ impl IngestClientCommon {
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass)]
 pub struct IngestStatus {
     pub current_timeline: Option<TimelineId>,
     pub events_received: u64,
     pub events_written: u64,
     pub events_pending: u64,
+}
+
+#[cfg(feature = "pyo3")]
+#[pyo3::pymethods]
+impl IngestStatus {
+    #[getter]
+    fn current_timeline(&self) -> Option<TimelineId> {
+        self.current_timeline
+    }
+
+    #[getter]
+    fn events_received(&self) -> u64 {
+        self.events_received
+    }
+
+    #[getter]
+    fn events_written(&self) -> u64 {
+        self.events_written
+    }
+
+    #[getter]
+    fn events_pending(&self) -> u64 {
+        self.events_pending
+    }
 }
 
 #[derive(Debug, Error)]

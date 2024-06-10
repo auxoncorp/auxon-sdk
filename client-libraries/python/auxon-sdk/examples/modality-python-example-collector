@@ -15,10 +15,10 @@ class Config:
     delay: float = 1.0
 
 cfg = auxon_sdk.IngestPluginConfig(Config, "PYTHON_EXAMPLE_")
-conn = cfg.connect_and_authenticate()
+conn = cfg.connect_and_authenticate_ingest()
 print("Connected!")
 
-tl = auxon_sdk.TimelineId()
+tl = auxon_sdk.TimelineId.allocate()
 conn.switch_timeline(tl)
 conn.send_timeline_attrs("counter", {"iterations": cfg.plugin.iterations})
 

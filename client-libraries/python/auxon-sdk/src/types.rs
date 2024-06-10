@@ -1,17 +1,5 @@
-use auxon_sdk::api::{AttrVal, Nanoseconds};
+use auxon_sdk::api::{AttrVal, Nanoseconds, TimelineId};
 use pyo3::{exceptions, prelude::*};
-
-#[pyclass]
-#[derive(Copy, Clone)]
-pub struct TimelineId(pub(crate) auxon_sdk::api::TimelineId);
-
-#[pymethods]
-impl TimelineId {
-    #[new]
-    pub fn new() -> TimelineId {
-        Self(auxon_sdk::api::TimelineId::allocate())
-    }
-}
 
 #[pyclass]
 #[derive(Clone)]
@@ -67,7 +55,7 @@ pub(crate) fn py_any_to_attr_val(py: Bound<PyAny>) -> Result<AttrVal, PyErr> {
 
     // Less common types are checked later
     if let Ok(tl_id) = py.extract::<TimelineId>() {
-        return Ok(tl_id.0.into());
+        return Ok(tl_id.into());
     }
 
     if let Ok(lt) = py.extract::<LogicalTime>() {

@@ -195,6 +195,18 @@ pub enum MutationParentClientInitializationError {
 
     #[error("Error parsing endpoint")]
     ParseIngestEndpoint(#[from] ParseRootwardsEndpointError),
+
+    #[error("Mutation plane authentication failed: {0}")]
+    AuthenticationFailed(String),
+
+    #[error("Mutation plane auth outcome received for a different participant")]
+    AuthWrongParticipant,
+
+    #[error("Unexpected auth response")]
+    UnexpectedAuthResponse,
+
+    #[error(transparent)]
+    CommsError(#[from] CommsError),
 }
 
 #[derive(Debug, Error)]

@@ -9,8 +9,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.21", features = ["extension-module"] }
-auxon-sdk = { path = "../../rust/", features = ["modality"] }
+auxon-sdk = { path = "../../rust/", features = ["modality", "deviant", "pyo3"] }
 serde = "1"
 tokio = "1"
 pyo3-log = "0.10"
 toml = "0.5.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "tracing-log",
+] }
