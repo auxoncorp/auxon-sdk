@@ -29,6 +29,7 @@ impl BearingConfigFilePath for CliOptions {
 }
 
 fn main() {
+    #[allow(deprecated)]
     std::process::exit(auxon_sdk::plugin_utils::server_main::<CliOptions, _, _>(
         |config, _auth_token, _opts, shutdown_signal| async move {
             let mutators = std::iter::once(("lonesome".to_string(), mutator())).collect();

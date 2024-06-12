@@ -319,7 +319,6 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
         let client = MutatorHost::connect_and_authenticate(
             &protocol_parent_url,
             self.mutation.allow_insecure_tls,
-            self.mutation.mutator_attributes,
             auth_token,
             Some(ingest),
         )
@@ -921,7 +920,7 @@ val = 42
 
         assert_eq!(
             cfg.mutation.protocol_parent_url,
-            Url::parse("modality-ingest://foo").ok()
+            Url::parse("modality-mutation://foo").ok()
         );
         assert!(!cfg.mutation.allow_insecure_tls);
 
