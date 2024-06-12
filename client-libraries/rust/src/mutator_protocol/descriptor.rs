@@ -253,9 +253,9 @@ pub mod owned {
                     return Ok(MutatorLayer::Environmental);
                 }
             }
-            return Err(pyo3::exceptions::PyValueError::new_err(
+            Err(pyo3::exceptions::PyValueError::new_err(
                 "ValueDistributionKind must be one of \"implementational\", \"operational\", or \"environmental\". ",
-            ));
+            ))
         }
     }
 
@@ -299,9 +299,10 @@ pub mod owned {
                     return Ok(MutatorStatefulness::Transient);
                 }
             }
-            return Err(pyo3::exceptions::PyValueError::new_err(
+
+            Err(pyo3::exceptions::PyValueError::new_err(
                 "ValueDistributionKind must be one of \"permanent\", \"intermittent\", or \"transient\". ",
-            ));
+            ))
         }
     }
 
@@ -380,9 +381,10 @@ pub mod owned {
                     return Ok(MutatorOperation::Stimulate);
                 }
             }
-            return Err(pyo3::exceptions::PyValueError::new_err(
+
+            Err(pyo3::exceptions::PyValueError::new_err(
                 "ValueDistributionKind must be one of: \"delay\", \"duplicate\", \"drop_fraction\", \"drop_positional\", \"disable\", \"enable\", \"corrupt\", \"set_to_value\", \"substitute_next_value\", \"reorder\", \"stimulate\"",
-            ));
+            ))
         }
     }
 
@@ -794,9 +796,10 @@ pub mod owned {
                     return Ok(ValueDistributionKind::Discrete);
                 }
             }
-            return Err(pyo3::exceptions::PyValueError::new_err(
+
+            Err(pyo3::exceptions::PyValueError::new_err(
                 "ValueDistributionKind must be one of \"continuous\" or \"discrete\". ",
-            ));
+            ))
         }
     }
 
@@ -834,9 +837,10 @@ pub mod owned {
                     return Ok(ValueDistributionScaling::Circular);
                 }
             }
-            return Err(pyo3::exceptions::PyValueError::new_err(
+
+            Err(pyo3::exceptions::PyValueError::new_err(
                 "ValueDistributionScaling must be one of \"linear\", \"complex\", or \"circular\". ",
-            ));
+            ))
         }
     }
 }
