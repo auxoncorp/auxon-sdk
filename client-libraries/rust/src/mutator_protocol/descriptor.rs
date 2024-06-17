@@ -22,7 +22,7 @@ pub mod owned {
     use crate::mutator_protocol::{attrs, params_attributes::is_valid_single_key_segment_contents};
     use std::collections::{BTreeMap, HashMap};
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Default)]
     pub struct OwnedMutatorDescriptor {
         pub name: Option<String>,
         pub description: Option<String>,
@@ -224,6 +224,7 @@ pub mod owned {
         Operational,
         Environmental,
     }
+
     impl MutatorLayer {
         pub fn name(&self) -> &'static str {
             match self {
@@ -233,6 +234,31 @@ pub mod owned {
             }
         }
     }
+
+    #[cfg(feature = "pyo3")]
+    impl<'py> pyo3::FromPyObject<'py> for MutatorLayer {
+        fn extract_bound(
+            ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+        ) -> pyo3::prelude::PyResult<Self> {
+            use pyo3::prelude::*;
+
+            if let Ok(s) = ob.extract::<String>() {
+                if s == "implementational" {
+                    return Ok(MutatorLayer::Implementational);
+                }
+                if s == "operational" {
+                    return Ok(MutatorLayer::Operational);
+                }
+                if s == "environmental" {
+                    return Ok(MutatorLayer::Environmental);
+                }
+            }
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "ValueDistributionKind must be one of \"implementational\", \"operational\", or \"environmental\". ",
+            ))
+        }
+    }
+
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum MutatorStatefulness {
         /// Sticks. Has effect immediately and continuously. Stays until explicitly told to leave.
@@ -244,6 +270,7 @@ pub mod owned {
         /// given regular system operations.
         Transient,
     }
+
     impl MutatorStatefulness {
         pub fn name(&self) -> &'static str {
             match self {
@@ -251,6 +278,31 @@ pub mod owned {
                 MutatorStatefulness::Intermittent => "intermittent",
                 MutatorStatefulness::Transient => "transient",
             }
+        }
+    }
+
+    #[cfg(feature = "pyo3")]
+    impl<'py> pyo3::FromPyObject<'py> for MutatorStatefulness {
+        fn extract_bound(
+            ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+        ) -> pyo3::prelude::PyResult<Self> {
+            use pyo3::prelude::*;
+
+            if let Ok(s) = ob.extract::<String>() {
+                if s == "permanent" {
+                    return Ok(MutatorStatefulness::Permanent);
+                }
+                if s == "intermittent" {
+                    return Ok(MutatorStatefulness::Intermittent);
+                }
+                if s == "transient" {
+                    return Ok(MutatorStatefulness::Transient);
+                }
+            }
+
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "ValueDistributionKind must be one of \"permanent\", \"intermittent\", or \"transient\". ",
+            ))
         }
     }
 
@@ -268,6 +320,7 @@ pub mod owned {
         Reorder,
         Stimulate,
     }
+
     impl MutatorOperation {
         pub fn name(&self) -> &'static str {
             match self {
@@ -283,6 +336,55 @@ pub mod owned {
                 MutatorOperation::Reorder => "reorder",
                 MutatorOperation::Stimulate => "stimulate",
             }
+        }
+    }
+
+    #[cfg(feature = "pyo3")]
+    impl<'py> pyo3::FromPyObject<'py> for MutatorOperation {
+        fn extract_bound(
+            ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+        ) -> pyo3::prelude::PyResult<Self> {
+            use pyo3::prelude::*;
+
+            if let Ok(s) = ob.extract::<String>() {
+                if s == "delay" {
+                    return Ok(MutatorOperation::Delay);
+                }
+                if s == "duplicate" {
+                    return Ok(MutatorOperation::Duplicate);
+                }
+                if s == "drop_fraction" {
+                    return Ok(MutatorOperation::DropFraction);
+                }
+                if s == "drop_positional" {
+                    return Ok(MutatorOperation::DropPositional);
+                }
+                if s == "disable" {
+                    return Ok(MutatorOperation::Disable);
+                }
+                if s == "enable" {
+                    return Ok(MutatorOperation::Enable);
+                }
+                if s == "corrupt" {
+                    return Ok(MutatorOperation::Corrupt);
+                }
+                if s == "set_to_value" {
+                    return Ok(MutatorOperation::SetToValue);
+                }
+                if s == "substitute_next_value" {
+                    return Ok(MutatorOperation::SubstituteNextValue);
+                }
+                if s == "reorder" {
+                    return Ok(MutatorOperation::Reorder);
+                }
+                if s == "stimulate" {
+                    return Ok(MutatorOperation::Stimulate);
+                }
+            }
+
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "ValueDistributionKind must be one of: \"delay\", \"duplicate\", \"drop_fraction\", \"drop_positional\", \"disable\", \"enable\", \"corrupt\", \"set_to_value\", \"substitute_next_value\", \"reorder\", \"stimulate\"",
+            ))
         }
     }
 
@@ -339,6 +441,24 @@ pub mod owned {
         pub value_distribution_scaling: Option<ValueDistributionScaling>,
         pub value_distribution_option_set: Option<BTreeMap<String, AttrVal>>,
         pub organization_custom_metadata: Option<OrganizationCustomMetadata>,
+    }
+
+    impl Default for OwnedMutatorParamDescriptor {
+        fn default() -> Self {
+            Self {
+                value_type: AttrType::Integer,
+                name: "".to_string(),
+                description: Default::default(),
+                value_min: Default::default(),
+                value_max: Default::default(),
+                default_value: Default::default(),
+                least_effect_value: Default::default(),
+                value_distribution_kind: Default::default(),
+                value_distribution_scaling: Default::default(),
+                value_distribution_option_set: Default::default(),
+                organization_custom_metadata: Default::default(),
+            }
+        }
     }
 
     impl OwnedMutatorParamDescriptor {
@@ -651,6 +771,7 @@ pub mod owned {
         Continuous,
         Discrete,
     }
+
     impl ValueDistributionKind {
         pub fn name(&self) -> &'static str {
             match self {
@@ -659,6 +780,29 @@ pub mod owned {
             }
         }
     }
+
+    #[cfg(feature = "pyo3")]
+    impl<'py> pyo3::FromPyObject<'py> for ValueDistributionKind {
+        fn extract_bound(
+            ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+        ) -> pyo3::prelude::PyResult<Self> {
+            use pyo3::prelude::*;
+
+            if let Ok(s) = ob.extract::<String>() {
+                if s == "continuous" {
+                    return Ok(ValueDistributionKind::Continuous);
+                }
+                if s == "discrete" {
+                    return Ok(ValueDistributionKind::Discrete);
+                }
+            }
+
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "ValueDistributionKind must be one of \"continuous\" or \"discrete\". ",
+            ))
+        }
+    }
+
     #[derive(Debug, Copy, Clone)]
     pub enum ValueDistributionScaling {
         Linear,
@@ -672,6 +816,31 @@ pub mod owned {
                 ValueDistributionScaling::Complex => "complex",
                 ValueDistributionScaling::Circular => "circular",
             }
+        }
+    }
+
+    #[cfg(feature = "pyo3")]
+    impl<'py> pyo3::FromPyObject<'py> for ValueDistributionScaling {
+        fn extract_bound(
+            ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+        ) -> pyo3::prelude::PyResult<Self> {
+            use pyo3::prelude::*;
+
+            if let Ok(s) = ob.extract::<String>() {
+                if s == "linear" {
+                    return Ok(ValueDistributionScaling::Linear);
+                }
+                if s == "complex" {
+                    return Ok(ValueDistributionScaling::Complex);
+                }
+                if s == "discrete" {
+                    return Ok(ValueDistributionScaling::Circular);
+                }
+            }
+
+            Err(pyo3::exceptions::PyValueError::new_err(
+                "ValueDistributionScaling must be one of \"linear\", \"complex\", or \"circular\". ",
+            ))
         }
     }
 }

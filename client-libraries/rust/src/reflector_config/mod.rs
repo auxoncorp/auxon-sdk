@@ -375,6 +375,7 @@ mod refined {
         pub plugins: Option<TopLevelPlugins>,
         pub metadata: BTreeMap<String, TomlValue>,
     }
+
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     pub struct TopLevelIngest {
         pub protocol_parent_url: Option<Url>,
@@ -383,6 +384,7 @@ mod refined {
         pub timeline_attributes: TimelineAttributes,
         pub max_write_batch_staleness: Option<Duration>,
     }
+
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     pub struct TopLevelMutation {
         pub protocol_parent_url: Option<Url>,
@@ -392,6 +394,7 @@ mod refined {
         pub mutator_attributes: MutatorAttributes,
         pub external_mutator_urls: Vec<Url>,
     }
+
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct TopLevelPlugins {
         pub available_ports: Option<AvailablePorts>,
@@ -399,6 +402,7 @@ mod refined {
         pub ingest: Option<PluginsIngest>,
         pub mutation: Option<PluginsMutation>,
     }
+
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     pub struct AvailablePorts {
         pub any_local: Option<bool>,

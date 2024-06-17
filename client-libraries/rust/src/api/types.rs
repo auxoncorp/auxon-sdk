@@ -136,6 +136,7 @@ impl FromStr for Nanoseconds {
 /// A segmented logical clock
 #[derive(Eq, PartialEq, Clone, Debug, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass)]
 pub struct LogicalTime(Box<[u64; 4]>);
 
 impl LogicalTime {
@@ -162,6 +163,42 @@ impl LogicalTime {
 
     pub fn get_raw(&self) -> &[u64; 4] {
         &self.0
+    }
+}
+
+#[cfg(feature = "pyo3")]
+#[pyo3::pymethods]
+impl LogicalTime {
+    #[staticmethod]
+    #[pyo3(name = "unary")]
+    pub fn unary_py(a: u64) -> Self {
+        LogicalTime(Box::new([0, 0, 0, a]))
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "binary")]
+    pub fn binary_py(a: u64, b: u64) -> Self {
+        LogicalTime(Box::new([0, 0, a, b]))
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "trinary")]
+    pub fn trinary_py(a: u64, b: u64, c: u64) -> Self {
+        LogicalTime(Box::new([0, a, b, c]))
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "quaternary")]
+    pub fn quaternary_py(a: u64, b: u64, c: u64, d: u64) -> Self {
+        LogicalTime(Box::new([a, b, c, d]))
+    }
+
+    pub fn as_tuple(&self) -> (u64, u64, u64, u64) {
+        (self.0[0], self.0[1], self.0[2], self.0[3])
+    }
+
+    pub fn as_array(&self) -> [u64; 4] {
+        *(self.0)
     }
 }
 
@@ -227,7 +264,35 @@ pub const TIMELINE_ID_SIGIL: char = '%';
     Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass)]
 pub struct TimelineId(Uuid);
+
+#[cfg(feature = "pyo3")]
+#[pyo3::pymethods]
+impl TimelineId {
+    #[staticmethod]
+    pub fn zero_py() -> Self {
+        TimelineId(Uuid::nil())
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "allocate")]
+    pub fn allocate_py() -> Self {
+        TimelineId(Uuid::new_v4())
+    }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+
+    fn __hash__(&self) -> u64 {
+        use std::hash::Hash as _;
+        use std::hash::Hasher as _;
+        let mut hasher = std::hash::DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
+    }
+}
 
 impl TimelineId {
     pub fn zero() -> Self {
@@ -265,10 +330,12 @@ pub type OpaqueEventId = [u8; 16];
     Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass)]
 pub struct EventCoordinate {
     pub timeline_id: TimelineId,
     pub id: OpaqueEventId,
 }
+
 impl EventCoordinate {
     pub fn as_bytes(&self) -> [u8; 32] {
         let mut bytes = [0u8; 32];
@@ -635,6 +702,100 @@ pub mod conversion {
 pub struct WrongAttrTypeError {
     actual: AttrType,
     expected: AttrType,
+}
+
+#[cfg(feature = "pyo3")]
+impl<'py> pyo3::FromPyObject<'py> for AttrVal {
+    fn extract_bound(
+        ob: &pyo3::prelude::Bound<'py, pyo3::prelude::PyAny>,
+    ) -> pyo3::prelude::PyResult<Self> {
+        use pyo3::prelude::*;
+
+        // Check the most common types first
+        if let Ok(i) = ob.extract::<i64>() {
+            return Ok(i.into());
+        }
+
+        if let Ok(f) = ob.extract::<f64>() {
+            return Ok(f.into());
+        }
+
+        if let Ok(s) = ob.extract::<String>() {
+            return Ok(s.into());
+        }
+
+        if let Ok(b) = ob.extract::<bool>() {
+            return Ok(b.into());
+        }
+
+        if let Ok(ts) = ob.extract::<std::time::SystemTime>() {
+            match ts.duration_since(std::time::UNIX_EPOCH) {
+                Ok(dur) => {
+                    let ns = dur.as_nanos();
+                    if ns > u64::MAX as u128 {
+                        return Err(pyo3::exceptions::PyValueError::new_err(
+                            "Timestamp value too large",
+                        ));
+                    } else {
+                        return Ok(Nanoseconds::from(ns as u64).into());
+                    }
+                }
+                Err(_) => {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "Timestamp before UNIX epoch",
+                    ));
+                }
+            }
+        }
+
+        // Less common types are checked later
+        if let Ok(tl_id) = ob.extract::<TimelineId>() {
+            return Ok(tl_id.0.into());
+        }
+
+        if let Ok(lt) = ob.extract::<LogicalTime>() {
+            return Ok(lt.into());
+        }
+
+        if let Ok(ec) = ob.extract::<EventCoordinate>() {
+            return Ok(ec.into());
+        }
+
+        if let Ok(i) = ob.extract::<i128>() {
+            return Ok(i.into());
+        }
+
+        if let Ok(id) = ob.extract::<crate::mutation_plane::types::MutationId>() {
+            return Ok(i128::from_le_bytes(Uuid::from(id).into_bytes()).into());
+        }
+
+        if let Ok(id) = ob.extract::<crate::mutation_plane::types::MutatorId>() {
+            return Ok(i128::from_le_bytes(Uuid::from(id).into_bytes()).into());
+        }
+
+        Err(pyo3::exceptions::PyValueError::new_err(
+            "Cannot represent value as AttrVal",
+        ))
+    }
+}
+
+#[cfg(feature = "pyo3")]
+impl pyo3::IntoPy<pyo3::PyObject> for AttrVal {
+    fn into_py(self, py: pyo3::prelude::Python<'_>) -> pyo3::PyObject {
+        match self {
+            AttrVal::TimelineId(tid) => tid.into_py(py),
+            AttrVal::EventCoordinate(ec) => ec.into_py(py),
+            AttrVal::String(s) => s.into_py(py),
+            AttrVal::Integer(i) => i.into_py(py),
+            AttrVal::BigInt(bi) => bi.into_py(py),
+            AttrVal::Float(f) => f.into_py(py),
+            AttrVal::Bool(b) => b.into_py(py),
+            AttrVal::Timestamp(ns) => {
+                (std::time::UNIX_EPOCH + std::time::Duration::from_nanos(ns.get_raw())).into_py(py)
+            }
+            AttrVal::LogicalTime(lt) => lt.into_py(py),
+        }
+    }
 }
 
 #[cfg(test)]

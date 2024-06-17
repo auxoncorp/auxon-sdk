@@ -113,3 +113,10 @@ pub enum DynamicIngestError {
     #[error("Invalid state: a timeline must be bound before submitting events")]
     NoBoundTimeline,
 }
+
+#[cfg(feature = "pyo3")]
+impl From<DynamicIngestError> for pyo3::PyErr {
+    fn from(value: DynamicIngestError) -> Self {
+        pyo3::exceptions::PyValueError::new_err(value.to_string())
+    }
+}

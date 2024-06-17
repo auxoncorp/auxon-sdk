@@ -31,7 +31,7 @@ pub enum IngestResponse {
     },
 }
 
-#[derive(Debug, Encode)]
+#[derive(Debug, Decode, Encode)]
 pub enum IngestMessage {
     #[n(0)]
     AuthRequest {
@@ -114,9 +114,9 @@ impl<'b> Decode<'b> for InternedAttrKey {
 /// These are encoded in cbor in a 'reasonably compact' way: an array of alternating u32 key and
 /// AttrVals.
 #[derive(Debug)]
-pub struct PackedAttrKvs<K: Into<u32> + Copy + std::fmt::Debug>(pub Vec<(K, AttrVal)>);
+pub struct PackedAttrKvs<K: Into<u32> + From<u32> + Copy + std::fmt::Debug>(pub Vec<(K, AttrVal)>);
 
-impl<K: Into<u32> + Copy + std::fmt::Debug> Encode for PackedAttrKvs<K> {
+impl<K: Into<u32> + From<u32> + Copy + std::fmt::Debug> Encode for PackedAttrKvs<K> {
     fn encode<W: encode::Write>(&self, e: &mut Encoder<W>) -> Result<(), encode::Error<W::Error>> {
         e.array((self.0.len() * 2) as u64)?;
         for (k, v) in self.0.iter() {
@@ -125,5 +125,26 @@ impl<K: Into<u32> + Copy + std::fmt::Debug> Encode for PackedAttrKvs<K> {
         }
 
         Ok(())
+    }
+}
+
+impl<'b, K: Into<u32> + From<u32> + Copy + std::fmt::Debug> Decode<'b> for PackedAttrKvs<K> {
+    fn decode(d: &mut Decoder<'b>) -> Result<Self, decode::Error> {
+        let arr_len = d.array()?;
+
+        if let Some(len) = arr_len {
+            let mut attrs = Vec::with_capacity(len as usize);
+            let mut remaining = len;
+            while remaining >= 2 {
+                attrs.push((K::from(d.u32()?), AttrVal::decode(d)?));
+                remaining -= 2;
+            }
+
+            Ok(PackedAttrKvs(attrs))
+        } else {
+            Err(decode::Error::Message(
+                "missing array length for PackedAttrKvs",
+            ))
+        }
     }
 }

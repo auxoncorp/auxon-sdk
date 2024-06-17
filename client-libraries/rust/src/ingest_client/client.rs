@@ -7,7 +7,7 @@ use tokio::{
     net::{TcpSocket, TcpStream},
     time::timeout,
 };
-use tokio_native_tls::TlsStream;
+use tokio_rustls::client::TlsStream;
 use url::Url;
 
 pub struct IngestClient<S> {
@@ -124,22 +124,28 @@ impl IngestConnection {
         })?;
 
         if let Some(tls_mode) = endpoint.tls_mode {
-            let cx = native_tls::TlsConnector::builder()
-                .danger_accept_invalid_certs(match tls_mode {
-                    TlsMode::Secure => false,
-                    TlsMode::Insecure => true,
-                })
-                .build()?;
-            let cx = tokio_native_tls::TlsConnector::from(cx);
-            let stream = cx.connect(&endpoint.cert_domain, stream).await?;
+            let config = match tls_mode {
+                TlsMode::Insecure => crate::tls::INSECURE.clone(),
+                TlsMode::Secure => crate::tls::SECURE.clone(),
+            };
+
+            let cx = tokio_rustls::TlsConnector::from(config);
+            let stream = cx.connect(endpoint.cert_domain.try_into()?, stream).await?;
             Ok(IngestConnection::Tls(stream))
         } else {
             Ok(IngestConnection::Tcp(stream))
         }
     }
 
-    async fn write_msg(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
+    pub async fn write_msg(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
         let msg_buf = minicbor::to_vec(msg)?;
+        self.write_bytes(&msg_buf).await
+    }
+
+    /// Write already-encoded dagta directly to the ingest
+    /// socket. `msg_buf` should NOT include the length prefix; that
+    /// is added by this method.
+    pub async fn write_bytes(&mut self, msg_buf: &[u8]) -> Result<(), IngestError> {
         let msg_len = msg_buf.len() as u32;
 
         match self {
@@ -165,7 +171,7 @@ impl IngestConnection {
         Ok(())
     }
 
-    async fn read_msg(&mut self) -> Result<IngestResponse, IngestError> {
+    pub async fn read_msg(&mut self) -> Result<IngestResponse, IngestError> {
         match self {
             IngestConnection::Tcp(s) => {
                 let msg_len = s.read_u32().await?; // yes, this is big-endian
@@ -182,6 +188,24 @@ impl IngestConnection {
                 Ok(minicbor::decode::<IngestResponse>(&msg_buf)?)
             }
         }
+    }
+
+    /// Copy data directly from `reader` to the ingest socket.
+    pub async fn copy_from<'a, R>(&mut self, reader: &'a mut R) -> tokio::io::Result<u64>
+    where
+        R: tokio::io::AsyncRead + Unpin + ?Sized,
+    {
+        match self {
+            IngestConnection::Tcp(s) => tokio::io::copy(reader, s).await,
+            IngestConnection::Tls(s) => tokio::io::copy(reader, s).await,
+        }
+    }
+}
+
+impl<T> IngestClient<T> {
+    /// Consume this client and return the lower-level IngestConnection
+    pub fn lower_to_connection(self) -> IngestConnection {
+        self.common.connection
     }
 }
 
@@ -345,7 +369,6 @@ impl IngestClient<BoundTimelineState> {
         self.common.event(ordering, attrs).await
     }
 
-    // TODO make a blocking_flush as well, good for tests
     pub async fn flush(&mut self) -> Result<(), IngestError> {
         self.common.flush().await
     }
@@ -415,7 +438,6 @@ impl IngestClientCommon {
         Ok(())
     }
 
-    // TODO make a blocking_flush as well, good for tests
     pub async fn flush(&mut self) -> Result<(), IngestError> {
         self.send(&IngestMessage::Flush {}).await?;
 
@@ -424,11 +446,36 @@ impl IngestClientCommon {
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass)]
 pub struct IngestStatus {
     pub current_timeline: Option<TimelineId>,
     pub events_received: u64,
     pub events_written: u64,
     pub events_pending: u64,
+}
+
+#[cfg(feature = "pyo3")]
+#[pyo3::pymethods]
+impl IngestStatus {
+    #[getter]
+    fn current_timeline(&self) -> Option<TimelineId> {
+        self.current_timeline
+    }
+
+    #[getter]
+    fn events_received(&self) -> u64 {
+        self.events_received
+    }
+
+    #[getter]
+    fn events_written(&self) -> u64 {
+        self.events_written
+    }
+
+    #[getter]
+    fn events_pending(&self) -> u64 {
+        self.events_pending
+    }
 }
 
 #[derive(Debug, Error)]
@@ -446,8 +493,11 @@ pub enum IngestClientInitializationError {
         remote_addr: SocketAddr,
     },
 
-    #[error("TLS Error")]
-    Tls(#[from] native_tls::Error),
+    #[error(transparent)]
+    InvalidDnsName(#[from] tokio_rustls::rustls::pki_types::InvalidDnsNameError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
     #[error("Client local address parsing failed.")]
     ClientLocalAddrParse(#[from] std::net::AddrParseError),

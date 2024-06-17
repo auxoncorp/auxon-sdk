@@ -183,7 +183,6 @@ class Modality:
                             only_newest_segment_in_workspace=None, timeline_filter=None,
                             ):
         r"""
-
         :param str experiment_name: The star of the show
         :param str workspace_name: Which workspace's data are we focusing on to find the effects of this experiment?
         :param str workspace_version_id: Which workspace's data are we focusing on to find the effects of this experiment?

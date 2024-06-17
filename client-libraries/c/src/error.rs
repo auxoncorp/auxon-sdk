@@ -49,6 +49,9 @@ pub enum error {
     AttrKeyNaming = -85,
     Io = -86,
     LoadConfigError = -87,
+    InvalidDnsName = -88,
+    AuthWrongParticipant = -89,
+    UnexpectedAuthResponse = -90,
     // Reserved
     NoBoundTimeline = -100,
 }
@@ -66,9 +69,10 @@ impl From<IngestClientInitializationError> for Error {
             NoIps => Error::NoIps,
             SocketInit(_) => Error::SocketInit,
             SocketConnection { .. } => Error::SocketConnection,
-            Tls(_) => Error::Tls,
             ClientLocalAddrParse(_) => Error::ClientLocalAddrParse,
             ParseIngestEndpoint(_) => Error::ParseIngestEndpoint,
+            InvalidDnsName(_) => Error::InvalidDnsName,
+            Io(_) => Error::Io,
         }
     }
 }
@@ -113,9 +117,14 @@ impl From<MutationParentClientInitializationError> for Error {
             NoIps => Error::NoIps,
             SocketInit(_) => Error::SocketInit,
             SocketConnection { .. } => Error::SocketConnection,
-            Tls(_) => Error::Tls,
             ClientLocalAddrParse(_) => Error::ClientLocalAddrParse,
             ParseIngestEndpoint(_) => Error::ParseIngestEndpoint,
+            InvalidDnsName(_) => Error::InvalidDnsName,
+            Io(_) => Error::Io,
+            AuthenticationFailed(_) => Error::AuthenticationError,
+            AuthWrongParticipant => Error::AuthWrongParticipant,
+            UnexpectedAuthResponse => Error::UnexpectedAuthResponse,
+            CommsError(e) => e.into(),
         }
     }
 }

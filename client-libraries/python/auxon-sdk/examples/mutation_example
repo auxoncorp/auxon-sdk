@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+import auxon_sdk
+import time
+from dataclasses import dataclass
+
+class System:
+    def __init__(self):
+        self.value = 0
+
+    def run(self):
+        while True:
+            print(self.value)
+            time.sleep(0.5)
+
+@dataclass
+class Config:
+    pass
+
+class OffsetMutatorParams:
+    offset = auxon_sdk.MutatorParam("offset", int,
+                                    description = "Numerical offset",
+                                    default_value = 0, value_min = -100, value_max = 100)
+
+@auxon_sdk.mutator(name="Offset Mutator",
+                   description="Number offset mutator",
+                   params=OffsetMutatorParams)
+class OffsetMutator:
+    def __init__(self, target: System):
+        self.mutations = {}
+        self.target = target
+
+    def inject(self, mutation_id: auxon_sdk.MutationId, params: OffsetMutatorParams):
+        offset = params.offset
+        self.mutations[mutation_id] = offset
+        self.target.value += offset
+
+    def clear_mutation(self, mutation_id: auxon_sdk.MutationId):
+        offset = self.mutations.pop(mutation_id)
+        self.target.value -= offset
+
+    def reset(self):
+        for mutation_id, offset in self.mutations:
+            self.target.value -= offset
+        self.mutations.clear()
+
+
+def main():
+    sys = System()
+
+    cfg = auxon_sdk.PluginConfig(Config, "PYTHON_EXAMPLE_")
+    mh = cfg.connect_and_authenticate_mutation()
+    print("Mutation plane connected!")
+
+    mh.register(OffsetMutator(sys))
+    sys.run()
+
+main()

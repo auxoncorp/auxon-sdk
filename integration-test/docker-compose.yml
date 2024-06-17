@@ -1,0 +1,73 @@
+volumes:
+  modalityd_data:
+  modality_client_config:
+    
+services:
+  modalityd:
+    image: ghcr.io/auxoncorp/modalityd:latest
+    volumes: [modalityd_data:/data-dir]
+    environment:
+      MODALITY_LICENSE_KEY: ${MODALITY_LICENSE_KEY}
+      MODALITY_ACCEPT_EULA: Y
+      NO_TLS: Y
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:14181/v1/alive"]
+      start_period: 2s
+      start_interval: 1s
+
+  modality-user-setup:
+    image: ghcr.io/auxoncorp/modality-reflector:latest
+    volumes: [modality_client_config:/root/.config/modality_cli]
+    depends_on: { modalityd: { condition: service_healthy } } 
+    restart: no
+    environment: { MODALITY_URL: http://modalityd:14181/v1 }
+    entrypoint: ["bash", "-c", "/modality user create test "]
+    
+  reflector:
+    profiles:
+      - test-collector
+    build:
+      context: ../client-libraries/python/auxon-sdk/examples
+      dockerfile_inline: |
+        FROM modality-python-sdk-build:latest
+        FROM ghcr.io/auxoncorp/modality-reflector:latest
+        RUN apt-get update && apt-get install python3 python3-pip -y
+        RUN python3 -m pip install --upgrade pip
+        COPY --from=0 /workdir/python/auxon-sdk/target/wheels/*.whl /
+        RUN python3 -m pip install /*.whl
+        COPY *collector /modality-reflector-plugins/collectors/
+    depends_on:
+      modality-user-setup: { condition: service_completed_successfully }
+      modalityd: { condition: service_healthy }
+    volumes: [modality_client_config:/root/.config/modality_cli]
+    environment:
+      MODALITY_LICENSE_KEY: ${MODALITY_LICENSE_KEY}
+      MODALITY_ACCEPT_EULA: Y
+      INGEST_PROTOCOL_PARENT_URL: modality-ingest://modalityd
+      MUTATION_PROTOCOL_PARENT_URL: modality-mutation://modalityd
+      REFLECTOR_OPTS: --collector python-example
+      PYTHON_EXAMPLE_ITERATIONS: 20
+      PYTHON_EXAMPLE_DELAY: 0.1
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo -n > /dev/tcp/127.0.0.1/14182"]
+      start_period: 2s
+      start_interval: 1s
+    
+  test-collector:
+    profiles:
+      - test-collector
+    build:
+      dockerfile_inline: |
+        FROM ghcr.io/auxoncorp/modality-reflector:latest
+        COPY *.sh /
+        COPY *.speqtr /
+        ENTRYPOINT []
+        CMD /test-collector.sh
+    depends_on:
+      reflector: { condition: service_started }
+      modality-user-setup: { condition: service_completed_successfully }
+      modalityd: { condition: service_healthy }
+    volumes:
+      - modality_client_config:/root/.config/modality_cli
+    environment: { MODALITY_URL: http://modalityd:14181/v1 }
+    restart: no
