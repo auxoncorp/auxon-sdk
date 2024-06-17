@@ -93,7 +93,7 @@ jobs:
 
       - name: Integration tests
         run: ./go.sh
-        working-directory: ./integeration-test
+        working-directory: ./integration-test
 
   windows:
     name: Windows Rust
