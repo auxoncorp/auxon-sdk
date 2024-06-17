@@ -87,6 +87,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
+          pip install --upgrade pip
           ./build-and-test.sh
         working-directory: ./client-libraries/python/auxon-sdk
 
