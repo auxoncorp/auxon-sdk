@@ -137,8 +137,15 @@ impl IngestConnection {
         }
     }
 
-    async fn write_msg(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
+    pub async fn write_msg(&mut self, msg: &IngestMessage) -> Result<(), IngestError> {
         let msg_buf = minicbor::to_vec(msg)?;
+        self.write_bytes(&msg_buf).await
+    }
+
+    /// Write already-encoded dagta directly to the ingest
+    /// socket. `msg_buf` should NOT include the length prefix; that
+    /// is added by this method.
+    pub async fn write_bytes(&mut self, msg_buf: &[u8]) -> Result<(), IngestError> {
         let msg_len = msg_buf.len() as u32;
 
         match self {
@@ -164,7 +171,7 @@ impl IngestConnection {
         Ok(())
     }
 
-    async fn read_msg(&mut self) -> Result<IngestResponse, IngestError> {
+    pub async fn read_msg(&mut self) -> Result<IngestResponse, IngestError> {
         match self {
             IngestConnection::Tcp(s) => {
                 let msg_len = s.read_u32().await?; // yes, this is big-endian
@@ -181,6 +188,24 @@ impl IngestConnection {
                 Ok(minicbor::decode::<IngestResponse>(&msg_buf)?)
             }
         }
+    }
+
+    /// Copy data directly from `reader` to the ingest socket.
+    pub async fn copy_from<'a, R>(&mut self, reader: &'a mut R) -> tokio::io::Result<u64>
+    where
+        R: tokio::io::AsyncRead + Unpin + ?Sized,
+    {
+        match self {
+            IngestConnection::Tcp(s) => tokio::io::copy(reader, s).await,
+            IngestConnection::Tls(s) => tokio::io::copy(reader, s).await,
+        }
+    }
+}
+
+impl<T> IngestClient<T> {
+    /// Consume this client and return the lower-level IngestConnection
+    pub fn lower_to_connection(self) -> IngestConnection {
+        self.common.connection
     }
 }
 
