@@ -22,7 +22,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
     let mut mh = config.connect_and_authenticate_mutation().await?;
     mh.register_mutator(Box::new(OffsetNumberMutator::new(value.clone())))
         .await?;
-    // TODO allow mutators to be added after connect
     println!("Connected");
     let _jh = tokio::task::spawn(async move { mh.message_loop().await.unwrap() });
 
