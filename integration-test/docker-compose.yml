@@ -61,7 +61,9 @@ services:
         COPY *.speqtr /
         ENTRYPOINT []
         CMD /test-collector.sh
-    depends_on: { modalityd: { condition: service_healthy } }
+    depends_on:
+      modality-user-setup: { condition: service_completed_successfully }
+      modalityd: { condition: service_healthy }
     volumes:
       - modality_client_config:/root/.config/modality_cli
     environment: { MODALITY_URL: http://modalityd:14181/v1 }
