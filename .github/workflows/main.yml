@@ -16,6 +16,9 @@ jobs:
       - name: Install system packages
         run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel python3 python3-dev
 
+      - name: Use clang as cc
+        run: sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100
+
       - name: Free up some disk space
         run: |
           echo "----------------------------------------------"
@@ -113,6 +116,10 @@ jobs:
           components: rustfmt, clippy
           toolchain: stable
           override: true
+
+      # See https://github.com/aws/aws-lc/issues/1477
+      - name: Install nasm
+        uses: ilammy/setup-nasm@v1
 
       - name: Fetch deps
         run: cargo fetch
