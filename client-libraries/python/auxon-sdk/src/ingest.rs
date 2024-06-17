@@ -36,12 +36,10 @@ impl IngestClient {
         timeline_attrs: &Bound<pyo3::types::PyDict>,
     ) -> Result<(), PyErr> {
         let attrs = py_dict_to_attr_vec(timeline_attrs)?;
-        self.rt
-            .block_on(
-                self.client
-                    .send_timeline_attrs(name, attrs.iter().map(|(k, v)| (k.as_str(), v.clone()))),
-            )
-            .map_err(SdkError::from)?;
+        self.rt.block_on(
+            self.client
+                .send_timeline_attrs(name, attrs.iter().map(|(k, v)| (k.as_str(), v.clone()))),
+        )?;
 
         Ok(())
     }
@@ -54,29 +52,22 @@ impl IngestClient {
     ) -> Result<(), PyErr> {
         let attrs = py_dict_to_attr_vec(event_attrs)?;
 
-        self.rt
-            .block_on(self.client.send_event(
-                name,
-                ordering,
-                attrs.iter().map(|(k, v)| (k.as_str(), v.clone())),
-            ))
-            .map_err(SdkError::from)?;
+        self.rt.block_on(self.client.send_event(
+            name,
+            ordering,
+            attrs.iter().map(|(k, v)| (k.as_str(), v.clone())),
+        ))?;
 
         Ok(())
     }
 
     pub fn flush(&mut self) -> Result<(), PyErr> {
-        self.rt
-            .block_on(self.client.flush())
-            .map_err(SdkError::from)?;
+        self.rt.block_on(self.client.flush())?;
         Ok(())
     }
 
     pub fn status(&mut self) -> Result<IngestStatus, PyErr> {
-        let status = self
-            .rt
-            .block_on(self.client.status())
-            .map_err(SdkError::from)?;
+        let status = self.rt.block_on(self.client.status())?;
         Ok(status)
     }
 }
