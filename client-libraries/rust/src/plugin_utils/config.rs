@@ -26,12 +26,12 @@
 //! * `MODALITY_TIME_DOMAIN` is attached as the `timeline.time_domain`
 //!   attribtue to all timelines, if given.
 //!
-//! * `MODALITY_REFLECTOR_PROTOCOL_PARENT_URL`: The modality-ingest connection url
+//! * `MODALITY_INGEST_URL`: The modality-ingest connection url
 //!   where the client will try to connect. If not given, falls back to a url formed from
 //!   `MODALITY_HOST`, or else `modality-ingest://localhost`.
 //!
 //! * `MODALITY_HOST`: The name or ip of the host where modality is
-//!   running. `MODALITY_REFLECTOR_PROTOCOL_PARENT_URL` takes precedence
+//!   running. `MODALITY_INGEST_URL` takes precedence
 //!   over this. Defaults to `localhost`.
 //!
 //! * `ADDITIONAL_TIMELINE_ATTRIBUTES`: A
