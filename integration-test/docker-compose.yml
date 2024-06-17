@@ -24,6 +24,8 @@ services:
     entrypoint: ["bash", "-c", "/modality user create test "]
     
   reflector:
+    profiles:
+      - test-collector
     build:
       context: ../client-libraries/python/auxon-sdk/examples
       dockerfile_inline: |
@@ -62,6 +64,7 @@ services:
         ENTRYPOINT []
         CMD /test-collector.sh
     depends_on:
+      reflector: { condition: service_started }
       modality-user-setup: { condition: service_completed_successfully }
       modalityd: { condition: service_healthy }
     volumes:

@@ -12,4 +12,4 @@ if [ -f ~/.config/modality/license ]; then
 fi
 
 docker compose --profile test-collector build
-docker compose --profile test-collector up  --abort-on-container-exit test-collector --remove-orphans
+docker compose --profile test-collector up  --abort-on-container-exit test-collector --remove-orphans --force-recreate

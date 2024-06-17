@@ -14,7 +14,7 @@ class Config:
     # or 'delay' in the reflector config toml
     delay: float = 1.0
 
-cfg = auxon_sdk.IngestPluginConfig(Config, "PYTHON_EXAMPLE_")
+cfg = auxon_sdk.PluginConfig(Config, "PYTHON_EXAMPLE_")
 conn = cfg.connect_and_authenticate_ingest()
 print("Connected!")
 
