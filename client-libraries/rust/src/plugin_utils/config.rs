@@ -31,8 +31,10 @@
 //!   `MODALITY_HOST`, or else `modality-ingest://localhost`.
 //!
 //! * `MODALITY_HOST`: The name or ip of the host where modality is
-//!   running. `MODALITY_INGEST_URL` takes precedence
-//!   over this. Defaults to `localhost`.
+//!   running. `MODALITY_INGEST_URL` takes precedence over
+//!   this. Defaults to `localhost`. This will connect to localhost
+//!   via plaintext, but use TLS connections and ports when connecting
+//!   to any other host.
 //!
 //! * `ADDITIONAL_TIMELINE_ATTRIBUTES`: A
 //!   comma-separated list of attr=value pairs, which will be attached
@@ -514,7 +516,16 @@ fn override_mutation_config_from_env(
     if let Some(u) = mutation_env_overrides.modality_mutation_url {
         mutation.protocol_parent_url = Some(u);
     } else if let Some(u) = mutation_env_overrides.modality_ingest_url {
-        mutation.protocol_parent_url = Some(u);
+        let scheme = if u.scheme() == "modality-ingest-tls" {
+            "modality-mutation-tls"
+        } else {
+            "modality-mutation"
+        };
+        let host = u
+            .host()
+            .ok_or_else(|| "Ingest url must have a host component".to_string())?;
+        mutation.protocol_parent_url =
+            Some(url::Url::parse(&format!("{scheme}://{host}")).map_err(|e| e.to_string())?);
     } else if mutation.protocol_parent_url.is_none() {
         if let Some(host) = mutation_env_overrides.modality_host {
             let scheme = if host == "localhost" {
@@ -698,9 +709,25 @@ mod tests {
         val: Option<u32>,
     }
 
+    fn clear_relevant_env_vars() {
+        env::remove_var("MODALITY_REFLECTOR_CONFIG");
+        env::remove_var("MODALITY_CLIENT_TIMEOUT");
+        env::remove_var("MODALITY_RUN_ID");
+        env::remove_var("MODALITY_HOST");
+        env::remove_var("MODALITY_INGEST_URL");
+        env::remove_var("MODALITY_MUTATION_URL");
+        env::remove_var("ADDITIONAL_TIMELINE_ATTRIBUTES");
+        env::remove_var("OVERRIDE_TIMELINE_ATTRIBUTES");
+        env::remove_var("MODALITY_ALLOW_INSECURE_TLS");
+    }
+
     #[test]
     #[serial_test::serial]
     fn load_config_from_env() {
+        // clear all the relevant env vars
+        env::remove_var("TEST_VAL");
+        clear_relevant_env_vars();
+
         // With no env shenanigans going on, we should get the default config
         let cfg = Config::<CustomConfig>::load("TEST_").unwrap();
         assert_eq!(cfg.ingest, TopLevelIngest::default());
@@ -738,6 +765,23 @@ mod tests {
         assert_eq!(
             cfg.ingest.protocol_parent_url,
             Url::parse("modality-ingest://foo").ok()
+        );
+        assert_eq!(
+            cfg.mutation.protocol_parent_url,
+            Url::parse("modality-mutation://foo").ok()
+        );
+        env::remove_var("MODALITY_INGEST_URL");
+
+        // When it's TLS, mutation url should follow
+        env::set_var("MODALITY_INGEST_URL", "modality-ingest-tls://foo");
+        let cfg = Config::<CustomConfig>::load("TEST_").unwrap();
+        assert_eq!(
+            cfg.ingest.protocol_parent_url,
+            Url::parse("modality-ingest-tls://foo").ok()
+        );
+        assert_eq!(
+            cfg.mutation.protocol_parent_url,
+            Url::parse("modality-mutation-tls://foo").ok()
         );
         env::remove_var("MODALITY_INGEST_URL");
 
@@ -802,11 +846,15 @@ mod tests {
         env::remove_var("OVERRIDE_TIMELINE_ATTRIBUTES");
 
         // TODO test mutator section overrides
+
+        clear_relevant_env_vars();
     }
 
     #[test]
     #[serial_test::serial]
     fn load_config_from_file() {
+        clear_relevant_env_vars();
+
         let content = "
 [ingest]
 additional-timeline-attributes = ['a = 1']
@@ -864,11 +912,14 @@ val = 42
         assert_eq!(cfg.plugin.val, Some(42));
 
         env::remove_var("MODALITY_REFLECTOR_CONFIG");
+        clear_relevant_env_vars();
     }
 
     #[test]
     #[serial_test::serial]
     fn named_ingest_metadata_section_from_config_file() {
+        clear_relevant_env_vars();
+
         let content = "
 [plugins.ingest.collectors.test.metadata]
 val = 42
@@ -884,11 +935,16 @@ val = 42
 
         env::remove_var("MODALITY_REFLECTOR_CONFIG");
         env::remove_var("TEST_CURRENT_EXE_PATH");
+
+        clear_relevant_env_vars();
     }
 
     #[test]
     #[serial_test::serial]
     fn env_overrides_config_file() {
+        env::remove_var("TEST_VAL");
+        clear_relevant_env_vars();
+
         let content = "
 [ingest]
 additional-timeline-attributes = ['a = 1']
@@ -950,11 +1006,7 @@ val = 42
 
         assert_eq!(cfg.plugin.val, Some(99));
 
-        env::remove_var("MODALITY_REFLECTOR_CONFIG");
-        env::remove_var("ADDITIONAL_TIMELINE_ATTRIBUTES");
-        env::remove_var("OVERRIDE_TIMELINE_ATTRIBUTES");
-        env::remove_var("MODALITY_INGEST_URL");
-        env::remove_var("MODALITY_ALLOW_INSECURE_TLS");
         env::remove_var("TEST_VAL");
+        clear_relevant_env_vars();
     }
 }
