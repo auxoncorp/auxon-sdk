@@ -450,9 +450,13 @@ fn override_ingest_config_from_env(
         ingest.protocol_parent_url = Some(u);
     } else if ingest.protocol_parent_url.is_none() {
         if let Some(host) = ingest_env_overrides.modality_host {
-            ingest.protocol_parent_url = Some(
-                url::Url::parse(&format!("modality-ingest://{host}")).map_err(|e| e.to_string())?,
-            );
+            let scheme = if host == "localhost" {
+                "modality-ingest"
+            } else {
+                "modality-ingest-tls"
+            };
+            ingest.protocol_parent_url =
+                Some(url::Url::parse(&format!("{scheme}://{host}")).map_err(|e| e.to_string())?);
         }
     }
     if let Some(b) = ingest_env_overrides.modality_allow_insecure_tls {
@@ -513,10 +517,13 @@ fn override_mutation_config_from_env(
         mutation.protocol_parent_url = Some(u);
     } else if mutation.protocol_parent_url.is_none() {
         if let Some(host) = mutation_env_overrides.modality_host {
-            mutation.protocol_parent_url = Some(
-                url::Url::parse(&format!("modality-mutation://{host}"))
-                    .map_err(|e| e.to_string())?,
-            );
+            let scheme = if host == "localhost" {
+                "modality-mutation"
+            } else {
+                "modality-mutation-tls"
+            };
+            mutation.protocol_parent_url =
+                Some(url::Url::parse(&format!("{scheme}://{host}")).map_err(|e| e.to_string())?);
         }
     }
     if let Some(b) = mutation_env_overrides.modality_allow_insecure_tls {
@@ -739,7 +746,24 @@ mod tests {
         let cfg = Config::<CustomConfig>::load("TEST_").unwrap();
         assert_eq!(
             cfg.ingest.protocol_parent_url,
-            Url::parse("modality-ingest://foo").ok()
+            Url::parse("modality-ingest-tls://foo").ok()
+        );
+        assert_eq!(
+            cfg.mutation.protocol_parent_url,
+            Url::parse("modality-mutation-tls://foo").ok()
+        );
+        env::remove_var("MODALITY_HOST");
+
+        // Load host from environment
+        env::set_var("MODALITY_HOST", "localhost");
+        let cfg = Config::<CustomConfig>::load("TEST_").unwrap();
+        assert_eq!(
+            cfg.ingest.protocol_parent_url,
+            Url::parse("modality-ingest://localhost").ok()
+        );
+        assert_eq!(
+            cfg.mutation.protocol_parent_url,
+            Url::parse("modality-mutation://localhost").ok()
         );
         env::remove_var("MODALITY_HOST");
 
