@@ -118,7 +118,13 @@ impl MutatorParam {
 }
 
 fn py_type_to_attr_type(py_type: Bound<PyType>) -> PyResult<AttrType> {
-    match py_type.name()?.as_ref() {
+    let type_name = py_type.name()?;
+    let mut type_name_ref = type_name.as_ref();
+    if let Some(s) = type_name_ref.strip_prefix("builtins.") {
+        type_name_ref = s;
+    }
+
+    match type_name_ref {
         "str" => Ok(AttrType::String),
         "int" => Ok(AttrType::Integer),
         "float" => Ok(AttrType::Float),
