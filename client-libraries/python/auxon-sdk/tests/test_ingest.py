@@ -2,6 +2,7 @@ import auxon_sdk as auxon
 from dataclasses import dataclass
 import os
 import tempfile
+import unittest
 
 @dataclass
 class BaseConfig:
@@ -17,6 +18,7 @@ class SimpleConfig(BaseConfig):
     float_val: float = None
     bool_val: bool = None
 
+@unittest.skip("This is exercised by the integration tests")
 def test_basic_ingest():
     cfg = auxon.PluginConfig(SimpleConfig, "TEST_")
     c = cfg.connect_and_authenticate_ingest()
