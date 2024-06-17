@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Install system packages
-        run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel
+        run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel python3 python3-dev
 
       - name: Free up some disk space
         run: |
@@ -68,7 +68,7 @@ jobs:
         run: cargo clippy
         working-directory: ./client-libraries/rust
 
-      - name: Test
+      - name: Rust unit tests
         run: cargo test --all-features --all-targets -- --test-threads 1
         working-directory: ./client-libraries/rust
 
@@ -79,6 +79,17 @@ jobs:
       - name: Build C API Tests
         run: make all
         working-directory: ./client-libraries/c/ctest
+
+      - name: Python unit tests
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          ./build-and-test.sh
+        working-directory: ./client-libraries/python/auxon-sdk
+
+      - name: Integration tests
+        run: ./go.sh
+        working-directory: ./integeration-test
 
   windows:
     name: Windows Rust
