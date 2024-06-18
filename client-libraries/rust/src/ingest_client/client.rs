@@ -153,7 +153,7 @@ impl IngestConnection {
                 s.write_all(&msg_len.to_be_bytes())
                     .await
                     .map_err(minicbor::encode::Error::Write)?;
-                s.write_all(&msg_buf)
+                s.write_all(msg_buf)
                     .await
                     .map_err(minicbor::encode::Error::Write)?;
             }
@@ -162,7 +162,7 @@ impl IngestConnection {
                 s.write_all(&msg_len.to_be_bytes())
                     .await
                     .map_err(minicbor::encode::Error::Write)?;
-                s.write_all(&msg_buf)
+                s.write_all(msg_buf)
                     .await
                     .map_err(minicbor::encode::Error::Write)?;
             }
