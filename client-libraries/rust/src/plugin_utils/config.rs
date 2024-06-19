@@ -342,14 +342,14 @@ fn copy_relevant_plugin_section_to_top_level_metadata(
         if let Some(ingest) = &plugins.ingest {
             let plugins_ingest_member = if file_stem.looks_like_collector() {
                 ingest
-                    .collectors
-                    .get(file_stem.as_str()) // toml section: plugins.ingest.collectors.<full bin filename>
-                    .or_else(|| ingest.collectors.get(file_stem.alias())) // toml section: plugins.ingest.collectors.<stem filename>
+                    .find_collector_member_by_plugin_name(file_stem.as_str()) // toml section: plugins.ingest.collectors.<full bin filename>
+                    .or_else(|| ingest.find_collector_member_by_plugin_name(file_stem.alias()))
+            // toml section: plugins.ingest.collectors.<stem filename>
             } else if file_stem.looks_like_importer() {
                 ingest
-                    .importers
-                    .get(file_stem.as_str()) // toml section: plugins.ingest.importers.<full bin filename>
-                    .or_else(|| ingest.importers.get(file_stem.alias())) // toml section: plugins.ingest.importers.<stem filename>
+                    .find_importer_member_by_plugin_name(file_stem.as_str()) // toml section: plugins.ingest.importers.<full bin filename>
+                    .or_else(|| ingest.find_importer_member_by_plugin_name(file_stem.alias()))
+            // toml section: plugins.ingest.importers.<stem filename>
             } else {
                 None
             };
@@ -364,11 +364,12 @@ fn copy_relevant_plugin_section_to_top_level_metadata(
                 raw_toml.ingest.as_mut().unwrap().timeline_attributes =
                     pim.timeline_attributes.clone();
             }
-        } else if let Some(mutators) = plugins.mutation.as_ref().map(|m| &m.mutators) {
+        } else if let Some(mutation) = plugins.mutation.as_ref() {
             let mutations_ingest_member = if file_stem.looks_like_mutator() {
-                mutators
-                    .get(file_stem.as_str()) // toml section: plugins.mutation.mutators.<full bin filename>
-                    .or_else(|| mutators.get(file_stem.alias())) // toml section: plugins.mutation.mutators.<stem filename>
+                mutation
+                    .find_mutator_member_by_plugin_name(file_stem.as_str()) // toml section: plugins.mutation.mutators.<full bin filename>
+                    .or_else(|| mutation.find_mutator_member_by_plugin_name(file_stem.alias()))
+            // toml section: plugins.mutation.mutators.<stem filename>
             } else {
                 None
             };
