@@ -144,6 +144,8 @@ pub(crate) mod raw_toml {
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
     #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsIngestMember {
+        pub(crate) plugin: Option<String>,
+
         #[serde(flatten)]
         pub(crate) timeline_attributes: TimelineAttributes,
 
@@ -164,6 +166,8 @@ pub(crate) mod raw_toml {
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
     #[serde(rename_all = "kebab-case", default)]
     pub(crate) struct PluginsMutationMember {
+        pub(crate) plugin: Option<String>,
+
         #[serde(flatten)]
         pub(crate) mutator_attributes: MutatorAttributes,
 
@@ -189,6 +193,45 @@ pub(crate) mod raw_toml {
         let toml_value = toml::Value::try_from(config)?;
         let content = toml::to_string_pretty(&toml_value)?;
         Ok(content)
+    }
+
+    impl PluginMemberExt for PluginsIngestMember {
+        fn plugin(&self) -> Option<&str> {
+            self.plugin.as_deref()
+        }
+    }
+
+    impl PluginMemberExt for PluginsMutationMember {
+        fn plugin(&self) -> Option<&str> {
+            self.plugin.as_deref()
+        }
+    }
+
+    #[cfg(feature = "modality")]
+    impl PluginsIngest {
+        pub(crate) fn find_collector_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsIngestMember> {
+            find_member_by_plugin_name(&self.collectors, plugin_name)
+        }
+
+        pub(crate) fn find_importer_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsIngestMember> {
+            find_member_by_plugin_name(&self.importers, plugin_name)
+        }
+    }
+
+    #[cfg(feature = "modality")]
+    impl PluginsMutation {
+        pub(crate) fn find_mutator_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsMutationMember> {
+            find_member_by_plugin_name(&self.mutators, plugin_name)
+        }
     }
 
     impl From<refined::Config> for Config {
@@ -308,6 +351,7 @@ pub(crate) mod raw_toml {
     impl From<refined::PluginsIngestMember> for PluginsIngestMember {
         fn from(value: refined::PluginsIngestMember) -> Self {
             Self {
+                plugin: value.plugin,
                 timeline_attributes: value.timeline_attributes.into(),
                 shutdown: value.shutdown.into(),
                 metadata: value.metadata,
@@ -317,6 +361,7 @@ pub(crate) mod raw_toml {
     impl From<refined::PluginsMutationMember> for PluginsMutationMember {
         fn from(value: refined::PluginsMutationMember) -> Self {
             Self {
+                plugin: value.plugin,
                 mutator_attributes: value.mutator_attributes.into(),
                 shutdown: value.shutdown.into(),
                 metadata: value.metadata,
@@ -485,6 +530,7 @@ mod refined {
     }
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct PluginsIngestMember {
+        pub plugin: Option<String>,
         pub timeline_attributes: TimelineAttributes,
         pub shutdown: PluginShutdown,
         pub metadata: BTreeMap<String, TomlValue>,
@@ -495,6 +541,7 @@ mod refined {
     }
     #[derive(Debug, Clone, Default, PartialEq)]
     pub struct PluginsMutationMember {
+        pub plugin: Option<String>,
         pub mutator_attributes: MutatorAttributes,
         pub shutdown: PluginShutdown,
         pub metadata: BTreeMap<String, TomlValue>,
@@ -799,6 +846,7 @@ mod refined {
 
         fn try_from(value: raw_toml::PluginsIngestMember) -> Result<Self, Self::Error> {
             Ok(Self {
+                plugin: value.plugin,
                 timeline_attributes: value.timeline_attributes.try_into()?,
                 shutdown: value.shutdown.into(),
                 metadata: value.metadata,
@@ -829,6 +877,7 @@ mod refined {
 
         fn try_from(value: raw_toml::PluginsMutationMember) -> Result<Self, Self::Error> {
             Ok(Self {
+                plugin: value.plugin,
                 mutator_attributes: value.mutator_attributes.try_into()?,
                 shutdown: value.shutdown.into(),
                 metadata: value.metadata,
@@ -851,6 +900,90 @@ mod refined {
                 && self.mutation.is_none()
                 && self.plugins.is_none()
                 && self.metadata.is_empty()
+        }
+    }
+
+    impl PluginsIngest {
+        pub fn find_collector_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsIngestMember> {
+            find_member_by_plugin_name(&self.collectors, plugin_name)
+        }
+
+        pub fn find_importer_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsIngestMember> {
+            find_member_by_plugin_name(&self.importers, plugin_name)
+        }
+    }
+
+    impl PluginsMutation {
+        pub fn find_mutator_member_by_plugin_name<S: AsRef<str>>(
+            &self,
+            plugin_name: S,
+        ) -> Option<&PluginsMutationMember> {
+            find_member_by_plugin_name(&self.mutators, plugin_name)
+        }
+    }
+
+    pub(crate) fn find_member_by_plugin_name<T: PluginMemberExt, N: AsRef<str>>(
+        members: &BTreeMap<String, T>,
+        plugin_name: N,
+    ) -> Option<&T> {
+        members.iter().find_map(|(k, m)| {
+            if member_matches_plugin_name(plugin_name.as_ref(), k, m.plugin()) {
+                Some(m)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub(crate) fn member_matches_plugin_name<N: AsRef<str>, K: AsRef<str>, P: AsRef<str>>(
+        plugin_name: N,
+        member_key: K,
+        member_plugin: Option<P>,
+    ) -> bool {
+        if member_key.as_ref() == plugin_name.as_ref() {
+            // Exact match on the key
+            true
+        } else if member_plugin
+            .as_ref()
+            .map(|p| p.as_ref() == plugin_name.as_ref())
+            .unwrap_or(false)
+        {
+            // Exact match on the explicit plugin field
+            true
+        } else if member_key.as_ref().contains(plugin_name.as_ref()) {
+            // Matched on the key (i.e. look for 'socketcan' in 'my-socketcan-entry')
+            true
+        } else if member_plugin
+            .as_ref()
+            .map(|p| p.as_ref().contains(plugin_name.as_ref()))
+            .unwrap_or(false)
+        {
+            // Matched on the explicit plugin field (i.e. look for 'socketcan' in 'modality-socketcan-collector')
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(crate) trait PluginMemberExt {
+        fn plugin(&self) -> Option<&str>;
+    }
+
+    impl PluginMemberExt for PluginsIngestMember {
+        fn plugin(&self) -> Option<&str> {
+            self.plugin.as_deref()
+        }
+    }
+
+    impl PluginMemberExt for PluginsMutationMember {
+        fn plugin(&self) -> Option<&str> {
+            self.plugin.as_deref()
         }
     }
 
@@ -1035,6 +1168,12 @@ ranges = [
     10123,
 ],
 ]
+[plugins.ingest.collectors.foobar]
+plugin = 'modality-socketcan-collector'
+
+[plugins.ingest.collectors.foobar.metadata]
+all-the-custom = false
+
 [plugins.ingest.collectors.lttng-live]
 additional-timeline-attributes = [
     'a = 2',
@@ -1050,6 +1189,8 @@ shutdown-timeout-millis = 1000
 [plugins.ingest.collectors.lttng-live.metadata]
 all-the-custom = true
 bag = 41
+[plugins.ingest.collectors.my-dlt-cfg.metadata]
+foo = 10
 [plugins.ingest.importers.csv-yolo]
 additional-timeline-attributes = ['s = 4']
 override-timeline-attributes = ['t = "five"']
@@ -1067,6 +1208,7 @@ moar-custom = [
     2,
 ]
 "#;
+
     #[test]
     fn raw_representation_round_trip() {
         let raw: raw_toml::Config = toml::from_str(FULLY_FILLED_IN_TOML).unwrap();
@@ -1161,5 +1303,33 @@ additional-timeline-attributes = [
             }
             _ => panic!(),
         }
+    }
+
+    #[test]
+    fn config_member_lookups() {
+        let cfg: refined::Config = try_from_str(FULLY_FILLED_IN_TOML).unwrap();
+        let ingest = cfg
+            .plugins
+            .as_ref()
+            .and_then(|c| c.ingest.as_ref())
+            .unwrap();
+        let mutation = cfg
+            .plugins
+            .as_ref()
+            .and_then(|c| c.mutation.as_ref())
+            .unwrap();
+        assert!(ingest
+            .find_collector_member_by_plugin_name("lttng-live")
+            .is_some());
+        assert!(ingest
+            .find_collector_member_by_plugin_name("socketcan")
+            .is_some());
+        assert!(ingest.find_collector_member_by_plugin_name("dlt").is_some());
+        assert!(ingest
+            .find_importer_member_by_plugin_name("csv-yolo")
+            .is_some());
+        assert!(mutation
+            .find_mutator_member_by_plugin_name("linux-network")
+            .is_some());
     }
 }
