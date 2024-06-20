@@ -90,7 +90,7 @@ duplicate = { version = "0.4.1", optional = true }
 envy = { version = "0.4.2", optional = true }
 rustls-native-certs = { version = "0.7", optional = true }
 # bindgen feature is required for s390x
-aws-lc-rs = { versino = "1.7", features = ["bindgen"], optional = true}
+aws-lc-rs = { version = "1.7", features = ["bindgen"], optional = true}
 
 pyo3 = { version = "0.21", optional = true }
 
