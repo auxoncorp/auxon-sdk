@@ -25,7 +25,7 @@ CCFLAGS_ASAN = $(CCFLAGS) \
                -O1 -g3 -fsanitize=address -fno-omit-frame-pointer -fno-common -fno-optimize-sibling-calls
 LDFLAGS = "-Wl,-rpath,$(PWD)/../target/release-with-debug/"
 
-DEPS = -lrt -lssl -lcrypto -lm
+DEPS = -lrt -lm
 DYN_LIBS = -L../target/release-with-debug -lmodality $(DEPS)
 DYN_LIBS_ASAN = $(DYN_LIBS) -lasan $(DEPS)
 STATIC_LIBS = ../target/release-with-debug/libmodality.a -lpthread -ldl $(DEPS)
