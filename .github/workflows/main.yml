@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Install system packages
-        run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel python3 python3-dev
+        run: sudo apt-get install -y libusb-1.0-0-dev graphviz clang llvm stunnel python3 python3-dev gcc-10
 
-      - name: Use clang as cc
-        run: sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100
+      - name: Use gcc-10 (needed by aws-lc)
+        run: sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
 
       - name: Free up some disk space
         run: |
