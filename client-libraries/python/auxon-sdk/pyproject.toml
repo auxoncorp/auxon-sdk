@@ -16,3 +16,4 @@ dependencies = ["appdirs", "pandas", "toml"]
 [tool.maturin]
 python-source = "python"
 module-name = "auxon_sdk._auxon_sdk"
+strip = true
