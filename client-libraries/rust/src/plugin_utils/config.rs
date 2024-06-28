@@ -96,8 +96,6 @@ use std::{
 };
 use url::Url;
 
-use super::mutation::MutatorHost;
-
 /// Plugin configuration structure; contains both common elements, and
 /// plugin-specific elements, based on the type param `T`.
 pub struct Config<T> {
@@ -303,6 +301,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
     ///
     /// This also creates an ingest connection, which is used
     /// internally to log mutation-related events.
+    #[cfg(feature = "deviant")]
     pub async fn connect_and_authenticate_mutation(
         &self,
     ) -> Result<super::mutation::MutatorHost, Box<dyn std::error::Error + Send + Sync>> {
@@ -318,7 +317,7 @@ impl<T: Serialize + DeserializeOwned> Config<T> {
         // load from MODALITY_AUTH_TOKEN or from the user profile
         let auth_token = AuthToken::load()?;
 
-        let client = MutatorHost::connect_and_authenticate(
+        let client = super::mutation::MutatorHost::connect_and_authenticate(
             &protocol_parent_url,
             self.mutation.allow_insecure_tls,
             auth_token,

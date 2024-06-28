@@ -5,7 +5,6 @@ on: [pull_request]
 env:
   MODALITY_BUILD_TYPE: "ci"
 
-
 jobs:
   stable_build_and_test:
     name: Stable Build and Test Rust
@@ -46,7 +45,6 @@ jobs:
           toolchain: stable
           override: true
 
-
       - name: Put local cargo bin on the path
         run: |
           echo "~/.cargo/bin" >> $GITHUB_PATH
@@ -71,8 +69,20 @@ jobs:
         run: cargo clippy --all --all-features --no-deps -- -W clippy::all -D warnings
         working-directory: ./client-libraries/rust
 
-      - name: Rust unit tests
+      - name: Rust unit tests (all features)
         run: cargo test --all-features --all-targets -- --test-threads 1
+        working-directory: ./client-libraries/rust
+
+      - name: Rust unit tests (modality feature)
+        run: cargo test --features modality -- --test-threads 1
+        working-directory: ./client-libraries/rust
+
+      - name: Rust unit tests (deviant features)
+        run: cargo test --features deviant -- --test-threads 1
+        working-directory: ./client-libraries/rust
+
+      - name: Rust unit tests (pyo3 feature)
+        run: cargo test --features pyo3 -- --test-threads 1
         working-directory: ./client-libraries/rust
 
       - name: Lint C API with Clippy

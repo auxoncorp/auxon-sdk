@@ -200,6 +200,13 @@ impl IngestConnection {
             IngestConnection::Tls(s) => tokio::io::copy(reader, s).await,
         }
     }
+
+    pub async fn flush(&mut self) -> tokio::io::Result<()> {
+        match self {
+            IngestConnection::Tcp(conn) => conn.flush().await,
+            IngestConnection::Tls(conn) => conn.flush().await,
+        }
+    }
 }
 
 impl<T> IngestClient<T> {
@@ -385,11 +392,13 @@ impl IngestClient<BoundTimelineState> {
                 events_received,
                 events_written,
                 events_pending,
+                error_count,
             } => Ok(IngestStatus {
                 current_timeline,
                 events_received,
                 events_written,
                 events_pending,
+                error_count: error_count.unwrap_or(0),
             }),
             _ => Err(IngestError::ProtocolError(
                 "Invalid status response recieved",
@@ -440,7 +449,7 @@ impl IngestClientCommon {
 
     pub async fn flush(&mut self) -> Result<(), IngestError> {
         self.send(&IngestMessage::Flush {}).await?;
-
+        self.connection.flush().await?;
         Ok(())
     }
 }
@@ -452,6 +461,7 @@ pub struct IngestStatus {
     pub events_received: u64,
     pub events_written: u64,
     pub events_pending: u64,
+    pub error_count: u64,
 }
 
 #[cfg(feature = "pyo3")]

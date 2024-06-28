@@ -1,9 +1,13 @@
 //! Various helpful utilities for writing modality-reflector plugins.
 
 pub mod config;
-pub mod ingest;
-pub mod mutation;
 pub mod serde;
+
+#[cfg(feature = "modality")]
+pub mod ingest;
+
+#[cfg(feature = "deviant")]
+pub mod mutation;
 
 use crate::api::types::{AttrKey, AttrVal};
 use crate::auth_token::{self, AuthToken, MODALITY_AUTH_TOKEN_ENV_VAR};
