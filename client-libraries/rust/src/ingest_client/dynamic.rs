@@ -92,11 +92,13 @@ impl DynamicIngestClient {
                 events_received,
                 events_written,
                 events_pending,
+                error_count,
             } => Ok(IngestStatus {
                 current_timeline,
                 events_received,
                 events_written,
                 events_pending,
+                error_count: error_count.unwrap_or(0),
             }),
             _ => Err(IngestError::ProtocolError(
                 "Invalid status response recieved",

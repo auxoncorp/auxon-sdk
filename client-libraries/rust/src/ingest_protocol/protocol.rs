@@ -28,6 +28,9 @@ pub enum IngestResponse {
 
         #[n(3)]
         events_pending: u64,
+
+        #[n(4)]
+        error_count: Option<u64>,
     },
 }
 
