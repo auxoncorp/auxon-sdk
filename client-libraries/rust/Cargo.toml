@@ -46,7 +46,7 @@ modality_tracing = [
 ]
 test_support = ["dep:proptest"]
 schemars = ["dep:schemars"]
-pyo3 = ["dep:pyo3"]
+pyo3 = ["dep:pyo3", "modality", "deviant"]
 
 [dependencies]
 hex = "0.4"
