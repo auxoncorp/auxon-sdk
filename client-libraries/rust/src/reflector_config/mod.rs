@@ -61,6 +61,9 @@ pub(crate) mod raw_toml {
 
         #[serde(flatten)]
         pub(crate) timeline_attributes: TimelineAttributes,
+
+        #[serde(skip_serializing_if = "Vec::is_empty", alias = "rollover-tracker")]
+        pub(crate) rollover_trackers: Vec<IngestRolloverTracker>,
     }
 
     #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -185,6 +188,27 @@ pub(crate) mod raw_toml {
         pub(crate) shutdown_timeout_millis: Option<u64>,
     }
 
+    #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
+    pub(crate) struct IngestRolloverTracker {
+        pub(crate) timeout_millis: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) sender: Option<RolloverTrackerParticipant>,
+        #[serde(skip_serializing_if = "Vec::is_empty", alias = "receiver")]
+        pub(crate) receivers: Vec<RolloverTrackerParticipant>,
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", default)]
+    pub(crate) struct RolloverTrackerParticipant {
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub(crate) timeline_attributes: Vec<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) event_name: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) event_attribute_key: Option<String>,
+    }
+
     #[cfg(test)]
     pub(crate) fn try_raw_to_string_pretty(config: &Config) -> Result<String, toml::ser::Error> {
         // Slightly unexpected detour through toml::Value to work around some
@@ -260,6 +284,11 @@ pub(crate) mod raw_toml {
                 }),
                 protocol_child_port: value.protocol_child_port.map(Into::into),
                 timeline_attributes: value.timeline_attributes.into(),
+                rollover_trackers: value
+                    .rollover_trackers
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
             }
         }
     }
@@ -397,6 +426,37 @@ pub(crate) mod raw_toml {
             }
         }
     }
+
+    impl From<refined::IngestRolloverTracker> for IngestRolloverTracker {
+        fn from(value: refined::IngestRolloverTracker) -> Self {
+            Self {
+                timeout_millis: value.timeout.map(|v| {
+                    let millis = v.as_millis();
+                    if millis >= u64::MAX as u128 {
+                        u64::MAX
+                    } else {
+                        millis as u64
+                    }
+                }),
+                sender: value.sender.map(Into::into),
+                receivers: value.receivers.into_iter().map(Into::into).collect(),
+            }
+        }
+    }
+
+    impl From<refined::RolloverTrackerParticipant> for RolloverTrackerParticipant {
+        fn from(value: refined::RolloverTrackerParticipant) -> Self {
+            Self {
+                timeline_attributes: value
+                    .timeline_attributes
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+                event_name: value.event_name,
+                event_attribute_key: value.event_attribute_key,
+            }
+        }
+    }
 }
 
 /// Public-facing, more-semantically-enriched configuration types
@@ -428,6 +488,7 @@ mod refined {
         pub protocol_child_port: Option<u16>,
         pub timeline_attributes: TimelineAttributes,
         pub max_write_batch_staleness: Option<Duration>,
+        pub rollover_trackers: Vec<IngestRolloverTracker>,
     }
 
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -550,6 +611,20 @@ mod refined {
     pub struct PluginShutdown {
         pub shutdown_signal: Option<String>,
         pub shutdown_timeout: Option<Duration>,
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, Eq)]
+    pub struct IngestRolloverTracker {
+        pub timeout: Option<Duration>,
+        pub sender: Option<RolloverTrackerParticipant>,
+        pub receivers: Vec<RolloverTrackerParticipant>,
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, Eq)]
+    pub struct RolloverTrackerParticipant {
+        pub timeline_attributes: Vec<AttrKeyEqValuePair>,
+        pub event_name: Option<String>,
+        pub event_attribute_key: Option<String>,
     }
 
     #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -696,6 +771,11 @@ mod refined {
                 max_write_batch_staleness: value
                     .max_write_batch_staleness_millis
                     .map(Duration::from_millis),
+                rollover_trackers: value
+                    .rollover_trackers
+                    .into_iter()
+                    .map(IngestRolloverTracker::try_from)
+                    .collect::<Result<Vec<_>, SemanticErrorExplanation>>()?,
             })
         }
     }
@@ -891,6 +971,43 @@ mod refined {
                 shutdown_signal: value.shutdown_signal,
                 shutdown_timeout: value.shutdown_timeout_millis.map(Duration::from_millis),
             }
+        }
+    }
+
+    impl TryFrom<raw_toml::IngestRolloverTracker> for IngestRolloverTracker {
+        type Error = SemanticErrorExplanation;
+
+        fn try_from(value: raw_toml::IngestRolloverTracker) -> Result<Self, Self::Error> {
+            Ok(Self {
+                timeout: value.timeout_millis.map(Duration::from_millis),
+                sender: value.sender.map(TryInto::try_into).transpose()?,
+                receivers: value
+                    .receivers
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<_>, SemanticErrorExplanation>>()?,
+            })
+        }
+    }
+
+    impl TryFrom<raw_toml::RolloverTrackerParticipant> for RolloverTrackerParticipant {
+        type Error = SemanticErrorExplanation;
+
+        fn try_from(value: raw_toml::RolloverTrackerParticipant) -> Result<Self, Self::Error> {
+            Ok(Self {
+                timeline_attributes: value
+                    .timeline_attributes
+                    .into_iter()
+                    .map(AttrKeyEqValuePair::try_from)
+                    .collect::<Result<Vec<_>, AttrKeyValuePairParseError>>()
+                    .map_err(|e| {
+                        SemanticErrorExplanation(format!(
+                            "Error in rollover-tracker member timeline-attributes. {e}"
+                        ))
+                    })?,
+                event_name: value.event_name,
+                event_attribute_key: value.event_attribute_key,
+            })
         }
     }
 
@@ -1137,6 +1254,24 @@ additional-timeline-attributes = [
 override-timeline-attributes = ['c = true']
 protocol-child-port = 9079
 protocol-parent-url = 'modality-ingest://auxon.io:9077'
+
+[[ingest.rollover-trackers]]
+timeout-millis = 1000
+
+[[ingest.rollover-trackers.receivers]]
+event-attribute-key = 'event.seqnum'
+event-name = 'rx'
+timeline-attributes = ['timeline.name = "B"']
+
+[[ingest.rollover-trackers.receivers]]
+event-attribute-key = 'event.seqnum'
+event-name = 'rx'
+timeline-attributes = ['timeline.name = "C"']
+
+[ingest.rollover-trackers.sender]
+event-attribute-key = 'event.seqnum'
+event-name = 'tx'
+timeline-attributes = ['timeline.name = "A"']
 
 [metadata]
 bag = 42
