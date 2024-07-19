@@ -155,6 +155,9 @@ pub(crate) mod raw_toml {
         #[serde(flatten)]
         pub(crate) shutdown: PluginShutdown,
 
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) restart: Option<bool>,
+
         #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
     }
@@ -176,6 +179,9 @@ pub(crate) mod raw_toml {
 
         #[serde(flatten)]
         pub(crate) shutdown: PluginShutdown,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub(crate) restart: Option<bool>,
 
         #[serde(skip_serializing_if = "BTreeMap::is_empty")]
         pub(crate) metadata: BTreeMap<String, TomlValue>,
@@ -383,6 +389,7 @@ pub(crate) mod raw_toml {
                 plugin: value.plugin,
                 timeline_attributes: value.timeline_attributes.into(),
                 shutdown: value.shutdown.into(),
+                restart: value.restart,
                 metadata: value.metadata,
             }
         }
@@ -393,6 +400,7 @@ pub(crate) mod raw_toml {
                 plugin: value.plugin,
                 mutator_attributes: value.mutator_attributes.into(),
                 shutdown: value.shutdown.into(),
+                restart: value.restart,
                 metadata: value.metadata,
             }
         }
@@ -594,6 +602,7 @@ mod refined {
         pub plugin: Option<String>,
         pub timeline_attributes: TimelineAttributes,
         pub shutdown: PluginShutdown,
+        pub restart: Option<bool>,
         pub metadata: BTreeMap<String, TomlValue>,
     }
     #[derive(Debug, Clone, Default, PartialEq)]
@@ -605,6 +614,7 @@ mod refined {
         pub plugin: Option<String>,
         pub mutator_attributes: MutatorAttributes,
         pub shutdown: PluginShutdown,
+        pub restart: Option<bool>,
         pub metadata: BTreeMap<String, TomlValue>,
     }
     #[derive(Debug, Clone, Default, PartialEq)]
@@ -929,6 +939,7 @@ mod refined {
                 plugin: value.plugin,
                 timeline_attributes: value.timeline_attributes.try_into()?,
                 shutdown: value.shutdown.into(),
+                restart: value.restart,
                 metadata: value.metadata,
             })
         }
@@ -960,6 +971,7 @@ mod refined {
                 plugin: value.plugin,
                 mutator_attributes: value.mutator_attributes.try_into()?,
                 shutdown: value.shutdown.into(),
+                restart: value.restart,
                 metadata: value.metadata,
             })
         }
@@ -1318,6 +1330,7 @@ override-timeline-attributes = [
     'c = false',
     'q = 99',
 ]
+restart = true
 shutdown-signal = 'SIGINT'
 shutdown-timeout-millis = 1000
 
