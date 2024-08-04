@@ -306,7 +306,6 @@ impl MutatorHost {
                 %mutation_id,
                 "Cannot clear mutation, mutator is not hosted by this client"
             );
-            println!("A");
             return;
         };
 
@@ -317,7 +316,6 @@ impl MutatorHost {
                 %mutation_id,
                 "Cannot clear mutation, no active mutations for mutator"
             );
-            println!("B");
             return;
         };
 
@@ -327,16 +325,13 @@ impl MutatorHost {
                 %mutation_id,
                 "Cannot clear mutation, mutation not active"
             );
-            println!("C");
             return;
         }
 
-        println!("D");
         tracing::debug!(%mutator_id, %mutation_id, "Clearing mutation");
 
         mutator.clear_mutation(&mutation_id);
         if reset_if_active {
-            println!("E");
             mutator.reset();
         }
     }
@@ -458,7 +453,6 @@ impl MutatorHost {
             return;
         };
 
-        println!("SEND EVENT {name}");
         let res = i.send_event(name, self.ingest_ordering, attrs).await;
 
         if let Err(e) = res {

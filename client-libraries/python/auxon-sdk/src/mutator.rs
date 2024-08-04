@@ -176,7 +176,8 @@ impl MutatorHost {
                                 inner.handle_message(m).await;
                             },
                             Err(e) => {
-                                dbg!(e);
+                                tracing::error!(e = &e as &dyn std::error::Error, "Received error from mutation connection");
+                                return Err(e.into());
                             }
                         }
                     }
