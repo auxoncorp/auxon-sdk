@@ -388,7 +388,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct OrganizationCustomMetadata {
         /// Expected to be ASCII and not contain any periods.
         organization_name_segment: String,
@@ -426,7 +426,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct OwnedMutatorParamDescriptor {
         pub value_type: AttrType,
         /// This is used as the parameter key interfix for parameter-specific attributes
@@ -803,7 +803,7 @@ pub mod owned {
         }
     }
 
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum ValueDistributionScaling {
         Linear,
         Complex,
