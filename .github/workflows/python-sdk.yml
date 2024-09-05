@@ -34,7 +34,6 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           working-directory: client-libraries/python/auxon-sdk
-          before-script-linux: pipx install patchelf
           target: ${{ matrix.platform.target }}
           args: --release --out dist
           manylinux: 2_28
