@@ -101,6 +101,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          MATURIN_REPOSITORY_URL: https://test.pypi.org
         with:
           working-directory: client-libraries/python/auxon-sdk
           command: upload
