@@ -40,7 +40,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: *.whl
+          name: "*.whl"
           path: dist
           if-no-files-found: error
 
@@ -68,7 +68,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: *.whl
+          name: "*.whl"
           path: dist
           if-no-files-found: error
 
@@ -86,7 +86,7 @@ jobs:
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: *.tar.gz
+          name: "*.tar.gz"
           path: dist
           if-no-files-found: error
 
