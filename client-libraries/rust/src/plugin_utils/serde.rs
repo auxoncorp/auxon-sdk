@@ -24,7 +24,7 @@
 /// }
 /// ```
 ///
-/// `envy` crate issue: https://github.com/softprops/envy/issues/26
+/// `envy` crate issue: <https://github.com/softprops/envy/issues/26>
 pub fn from_str<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: serde::de::Deserializer<'de>,
