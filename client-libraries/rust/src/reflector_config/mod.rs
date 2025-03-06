@@ -1130,7 +1130,7 @@ mod refined {
     /// * `${NAME}`
     /// * `${NAME-default}`
     /// * `${NAME:-default}`
-    fn envsub(input: &str) -> Result<String, EnvSubError> {
+    pub fn envsub(input: &str) -> Result<String, EnvSubError> {
         lazy_static! {
             // Matches the following patterns with named capture groups:
             // * '${NAME}' : var = 'NAME'
