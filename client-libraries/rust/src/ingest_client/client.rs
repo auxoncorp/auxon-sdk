@@ -8,6 +8,7 @@ use tokio::{
     time::timeout,
 };
 use tokio_rustls::client::TlsStream;
+use tracing::warn;
 use url::Url;
 
 pub struct IngestClient<S> {
@@ -223,7 +224,20 @@ impl IngestClient<UnauthenticatedState> {
         allow_insecure_tls: bool,
     ) -> Result<IngestClient<UnauthenticatedState>, IngestClientInitializationError> {
         let connection = IngestConnection::connect(endpoint, allow_insecure_tls).await?;
-        let common = IngestClientCommon::new(Duration::from_secs(1), connection);
+
+        let mut timeout_secs = 1.0f32;
+        if let Ok(modality_client_timeout) = std::env::var("MODALITY_CLIENT_TIMEOUT") {
+            if let Ok(f) = modality_client_timeout.parse::<f32>() {
+                timeout_secs = f;
+            } else {
+                warn!(
+                    ?modality_client_timeout,
+                    "MODALITY_CLIENT_TIMEOUT value cannot be parsed as a float; using default."
+                );
+            }
+        }
+
+        let common = IngestClientCommon::new(Duration::from_secs_f32(timeout_secs), connection);
 
         Ok(IngestClient {
             state: UnauthenticatedState {},
