@@ -9,7 +9,7 @@ jobs:
   stable_build_and_test:
     name: Stable Build and Test Rust
     timeout-minutes: 90
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Install system packages
